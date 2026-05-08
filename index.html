@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Painel de Suporte — Learning Passport Brasil</title>
+<style>
+  :root {
+    --verde: #25D366;
+    --verde-escuro: #128C7E;
+    --azul: #4F46E5;
+    --bg: #0F172A;
+    --bg2: #1E293B;
+    --bg3: #334155;
+    --texto: #F1F5F9;
+    --texto2: #94A3B8;
+    --borda: #334155;
+    --aberto: #FEF9C3; --aberto-t: #854D0E;
+    --andamento: #DBEAFE; --andamento-t: #1E40AF;
+    --resolvido: #DCFCE7; --resolvido-t: #166534;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--texto); min-height: 100vh; }
+
+  /* ── Header ── */
+  header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--borda);
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 14px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg,#25D366,#128C7E); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .logo-texto h1 { font-size: 15px; font-weight: 700; }
+  .logo-texto p { font-size: 11px; color: var(--texto2); }
+  nav { margin-left: auto; display: flex; gap: 6px; }
+  nav button {
+    background: transparent; color: var(--texto2); border: 1px solid var(--borda);
+    border-radius: 8px; padding: 6px 16px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all .15s;
+  }
+  nav button.ativo { background: var(--azul); color: white; border-color: var(--azul); }
+
+  /* ── Layout ── */
+  main { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+
+  /* ── Estatísticas ── */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--bg2); border: 1px solid var(--borda); border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .stat-label { font-size: 11px; color: var(--texto2); font-weight: 500; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; }
+  .stat-num { font-size: 28px; font-weight: 700; }
+
+  /* ── Abas de conteúdo ── */
+  .tab { display: none; }
+  .tab.ativo { display: block; }
+
+  /* ── Tabela ── */
+  .tabela-container {
+    background: var(--bg2); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden;
+  }
+  .tabela-header { padding: 14px 18px; border-bottom: 1px solid var(--borda); display: flex; align-items: center; gap: 10px; }
+  .tabela-header h2 { font-size: 14px; font-weight: 700; }
+  .badge { font-size: 11px; background: #3730A3; color: #C7D2FE; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; }
+  th { padding: 10px 14px; font-size: 11px; color: var(--texto2); font-weight: 700; text-align: left; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--borda); background: rgba(255,255,255,.02); }
+  td { padding: 11px 14px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,.04); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.03); }
+
+  .status-pill {
+    font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; cursor: pointer;
+    border: none; font-family: inherit;
+  }
+  .status-Aberto { background: var(--aberto); color: var(--aberto-t); }
+  .status-Em.andamento { background: var(--andamento); color: var(--andamento-t); }
+  .status-Resolvido { background: var(--resolvido); color: var(--resolvido-t); }
+
+  .perfil-badge { font-size: 11px; background: #3B0764; color: #D8B4FE; padding: 2px 8px; border-radius: 99px; }
+  .resumo { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texto2); }
+
+  /* ── Formulário ── */
+  .form-card { background: var(--bg2); border: 1px solid var(--borda); border-radius: 12px; padding: 24px; max-width: 600px; }
+  .form-card h2 { font-size: 15px; font-weight: 700; margin-bottom: 18px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grupo { display: flex; flex-direction: column; gap: 5px; }
+  .form-grupo label { font-size: 11px; color: var(--texto2); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+  .form-grupo input, .form-grupo select {
+    background: var(--bg3); border: 1px solid var(--borda); border-radius: 8px;
+    padding: 9px 12px; color: var(--texto); font-size: 13px; outline: none;
+    transition: border-color .15s;
+  }
+  .form-grupo input:focus { border-color: var(--azul); }
+  .btn-salvar {
+    margin-top: 18px; background: var(--azul); color: white; border: none;
+    border-radius: 8px; padding: 10px 24px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: background .15s;
+  }
+  .btn-salvar:hover { background: #4338CA; }
+  .msg-sucesso { margin-top: 12px; color: var(--verde); font-size: 13px; display: none; }
+
+  /* ── Estado vazio ── */
+  .vazio { padding: 60px; text-align: center; color: var(--texto2); }
+  .vazio-icone { font-size: 42px; margin-bottom: 12px; }
+  .vazio-titulo { font-size: 15px; font-weight: 600; color: var(--texto); margin-bottom: 6px; }
+
+  /* ── Carregando ── */
+  .carregando { padding: 40px; text-align: center; color: var(--texto2); font-size: 13px; }
+
+  /* ── Responsivo ── */
+  @media (max-width: 768px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+    nav button span { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🌍</div>
+  <div class="logo-texto">
+    <h1>Painel de Suporte — Learning Passport Brasil</h1>
+    <p>Gestão de tickets, pontos focais e FAQ • UNICEF / Territórios Conectados</p>
+  </div>
+  <nav>
+    <button class="ativo" onclick="mudarAba('tickets', this)">📋 <span>Tickets</span></button>
+    <button onclick="mudarAba('focais', this)">🏫 <span>Pontos Focais</span></button>
+    <button onclick="mudarAba('faq', this)">❓ <span>FAQ</span></button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ── Estatísticas ─────────────────────────────────────────────── -->
+  <div class="stats" id="stats">
+    <div class="stat-card">
+      <div class="stat-label">Total de Tickets</div>
+      <div class="stat-num" id="stat-total" style="color:#818CF8">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Em Aberto</div>
+      <div class="stat-num" id="stat-aberto" style="color:#CA8A04">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Em Andamento</div>
+      <div class="stat-num" id="stat-andamento" style="color:#3B82F6">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Resolvidos</div>
+      <div class="stat-num" id="stat-resolvido" style="color:#22C55E">—</div>
+    </div>
+  </div>
+
+  <!-- ── ABA: Tickets ─────────────────────────────────────────────── -->
+  <div class="tab ativo" id="tab-tickets">
+    <div class="tabela-container">
+      <div class="tabela-header">
+        <h2>📋 Registro de Atendimentos</h2>
+        <span class="badge" id="badge-tickets">carregando...</span>
+        <button onclick="carregarTickets()" style="margin-left:auto;background:transparent;border:1px solid var(--borda);color:var(--texto2);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;">↻ Atualizar</button>
+      </div>
+      <div id="tabela-tickets">
+        <div class="carregando">Carregando tickets...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ABA: Pontos Focais ───────────────────────────────────────── -->
+  <div class="tab" id="tab-focais">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+      <!-- Formulário de cadastro -->
+      <div class="form-card">
+        <h2>➕ Cadastrar Ponto Focal</h2>
+        <div class="form-grid">
+          <div class="form-grupo" style="grid-column:1/-1">
+            <label>Escola ou Secretaria *</label>
+            <input type="text" id="f-escola" placeholder="Ex: EMEI Territórios Conectados" />
+          </div>
+          <div class="form-grupo">
+            <label>Município *</label>
+            <input type="text" id="f-municipio" placeholder="Ex: Boa Vista" />
+          </div>
+          <div class="form-grupo">
+            <label>Estado *</label>
+            <select id="f-estado">
+              <option value="">Selecione...</option>
+              <option>Roraima</option><option>Maranhão</option><option>Pernambuco</option>
+              <option>Rio Grande do Norte</option><option>Ceará</option>
+              <option>Amazonas</option><option>Pará</option><option>Outro</option>
+            </select>
+          </div>
+          <div class="form-grupo" style="grid-column:1/-1">
+            <label>Nome do Ponto Focal *</label>
+            <input type="text" id="f-nome" placeholder="Nome completo" />
+          </div>
+          <div class="form-grupo">
+            <label>WhatsApp *</label>
+            <input type="text" id="f-whatsapp" placeholder="+55 (95) 99999-9999" />
+          </div>
+          <div class="form-grupo">
+            <label>E-mail</label>
+            <input type="email" id="f-email" placeholder="email@escola.edu.br" />
+          </div>
+        </div>
+        <button class="btn-salvar" onclick="cadastrarFocal()">Salvar Cadastro</button>
+        <div class="msg-sucesso" id="msg-focal">✅ Ponto focal cadastrado com sucesso!</div>
+      </div>
+
+      <!-- Lista de pontos focais -->
+      <div class="tabela-container">
+        <div class="tabela-header">
+          <h2>🏫 Pontos Focais Cadastrados</h2>
+          <span class="badge" id="badge-focais">—</span>
+        </div>
+        <div id="lista-focais">
+          <div class="carregando">Carregando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ABA: FAQ ─────────────────────────────────────────────────── -->
+  <div class="tab" id="tab-faq">
+    <div class="tabela-container">
+      <div class="tabela-header">
+        <h2>❓ Perguntas Frequentes — Referência</h2>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:14px;" id="lista-faq">
+        <!-- Preenchido pelo JS -->
+      </div>
+    </div>
+    <div style="margin-top:14px;background:#1E3A5F;border:1px solid #2563EB;border-radius:10px;padding:14px 18px;font-size:12px;color:#93C5FD;line-height:1.7">
+      <strong>💡 Para editar as respostas do FAQ:</strong> abra o arquivo <code>config.js</code> no servidor
+      e edite a seção <code>FAQ</code>. Após salvar, o bot passará a usar as novas respostas automaticamente.
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── FAQ local (espelhado do config.js para exibição) ──────────────────────
+const FAQ_DISPLAY = [
+  { pergunta: "Como recuperar senha ou login?", palavras: "senha, password, esqueci, recuperar, login" },
+  { pergunta: "Como emitir o certificado?", palavras: "certificado, certificate, concluí, terminou" },
+  { pergunta: "O que fazer com erro 502 Bad Gateway?", palavras: "502, bad gateway, erro, não abre" },
+  { pergunta: "Como conectar ao Hub Offline (Wi-Fi)?", palavras: "wifi, wi-fi, rede, conectar, hub, offline" },
+];
+
+// ── Navegação entre abas ───────────────────────────────────────────────────
+function mudarAba(id, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('ativo'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('ativo'));
+  document.getElementById('tab-' + id).classList.add('ativo');
+  btn.classList.add('ativo');
+  if (id === 'focais') carregarFocais();
+  if (id === 'faq') renderFAQ();
+}
+
+// ── Carregar e renderizar tickets ─────────────────────────────────────────
+async function carregarTickets() {
+  try {
+    const res = await fetch('/api/tickets');
+    const { tickets } = await res.json();
+    renderTickets(tickets || []);
+  } catch {
+    document.getElementById('tabela-tickets').innerHTML =
+      '<div class="carregando" style="color:#F87171">Erro ao carregar. Verifique a conexão com o servidor.</div>';
+  }
+}
+
+function renderTickets(tickets) {
+  const total = tickets.length;
+  const aberto = tickets.filter(t => t.status === 'Aberto').length;
+  const andamento = tickets.filter(t => t.status === 'Em andamento').length;
+  const resolvido = tickets.filter(t => t.status === 'Resolvido').length;
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-aberto').textContent = aberto;
+  document.getElementById('stat-andamento').textContent = andamento;
+  document.getElementById('stat-resolvido').textContent = resolvido;
+  document.getElementById('badge-tickets').textContent = total + ' registros';
+
+  if (total === 0) {
+    document.getElementById('tabela-tickets').innerHTML = `
+      <div class="vazio">
+        <div class="vazio-icone">📭</div>
+        <div class="vazio-titulo">Nenhum ticket registrado ainda</div>
+        <div>Os tickets aparecerão aqui quando usuários acionarem o suporte pelo WhatsApp.</div>
+      </div>`;
+    return;
+  }
+
+  const linhas = tickets.map(t => {
+    const sc = t.status === 'Aberto' ? 'aberto' :
+               t.status === 'Em andamento' ? 'andamento' : 'resolvido';
+    return `<tr>
+      <td style="font-weight:700;color:#A5B4FC">${t.id}</td>
+      <td>${t.data} ${t.hora}</td>
+      <td>${t.nome || '—'}</td>
+      <td><span class="perfil-badge">${t.perfil || '—'}</span></td>
+      <td style="color:var(--texto2)">${t.categoria || '—'}</td>
+      <td class="resumo" title="${t.resumo}">${t.resumo || '—'}</td>
+      <td>
+        <select class="status-pill status-${sc.replace(' ','.')}"
+          onchange="this.className='status-pill status-'+this.value.replace(' ','.')"
+          style="background:${sc==='aberto'?'#FEF9C3':sc==='andamento'?'#DBEAFE':'#DCFCE7'};
+                 color:${sc==='aberto'?'#854D0E':sc==='andamento'?'#1E40AF':'#166534'}">
+          <option ${t.status==='Aberto'?'selected':''}>Aberto</option>
+          <option ${t.status==='Em andamento'?'selected':''}>Em andamento</option>
+          <option ${t.status==='Resolvido'?'selected':''}>Resolvido</option>
+        </select>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tabela-tickets').innerHTML = `
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr>
+        <th>Ticket</th><th>Data/Hora</th><th>Usuário</th>
+        <th>Perfil</th><th>Categoria</th><th>Resumo</th><th>Status</th>
+      </tr></thead>
+      <tbody>${linhas}</tbody>
+    </table></div>`;
+}
+
+// ── Carregar pontos focais ─────────────────────────────────────────────────
+async function carregarFocais() {
+  try {
+    const res = await fetch('/api/pontos-focais');
+    const { pontos } = await res.json();
+    renderFocais(pontos || []);
+  } catch {
+    document.getElementById('lista-focais').innerHTML =
+      '<div class="carregando" style="color:#F87171">Erro ao carregar.</div>';
+  }
+}
+
+function renderFocais(pontos) {
+  document.getElementById('badge-focais').textContent = pontos.length + ' cadastrados';
+  if (pontos.length === 0) {
+    document.getElementById('lista-focais').innerHTML =
+      '<div class="vazio"><div class="vazio-icone">🏫</div><div class="vazio-titulo">Nenhum ponto focal cadastrado</div><div>Use o formulário ao lado para adicionar.</div></div>';
+    return;
+  }
+  const linhas = pontos.map(p => `
+    <tr>
+      <td style="font-weight:600">${p.escola}</td>
+      <td style="color:var(--texto2)">${p.municipio} / ${p.estado}</td>
+      <td>${p.nome_focal}</td>
+      <td style="color:var(--verde)">${p.whatsapp}</td>
+      <td style="color:var(--texto2)">${p.email || '—'}</td>
+    </tr>`).join('');
+  document.getElementById('lista-focais').innerHTML = `
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Escola/Secretaria</th><th>Local</th><th>Ponto Focal</th><th>WhatsApp</th><th>E-mail</th></tr></thead>
+      <tbody>${linhas}</tbody>
+    </table></div>`;
+}
+
+// ── Cadastrar ponto focal ──────────────────────────────────────────────────
+async function cadastrarFocal() {
+  const dados = {
+    escola: document.getElementById('f-escola').value,
+    municipio: document.getElementById('f-municipio').value,
+    estado: document.getElementById('f-estado').value,
+    nome_focal: document.getElementById('f-nome').value,
+    whatsapp: document.getElementById('f-whatsapp').value,
+    email: document.getElementById('f-email').value,
+  };
+  if (!dados.escola || !dados.nome_focal || !dados.whatsapp) {
+    alert('Preencha os campos obrigatórios: Escola, Nome do Ponto Focal e WhatsApp.');
+    return;
+  }
+  try {
+    await fetch('/api/pontos-focais', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dados),
+    });
+    document.getElementById('msg-focal').style.display = 'block';
+    setTimeout(() => document.getElementById('msg-focal').style.display = 'none', 3000);
+    ['f-escola','f-municipio','f-estado','f-nome','f-whatsapp','f-email']
+      .forEach(id => document.getElementById(id).value = '');
+    carregarFocais();
+  } catch {
+    alert('Erro ao cadastrar. Tente novamente.');
+  }
+}
+
+// ── Renderizar FAQ ─────────────────────────────────────────────────────────
+function renderFAQ() {
+  document.getElementById('lista-faq').innerHTML = FAQ_DISPLAY.map((item, i) => `
+    <div style="background:var(--bg3);border-radius:10px;padding:14px 16px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px">
+        ${i + 1}. ${item.pergunta}
+      </div>
+      <div style="font-size:11px;color:var(--texto2)">
+        Palavras-chave: <code style="color:#A5B4FC">${item.palavras}</code>
+      </div>
+    </div>`).join('');
+}
+
+// ── Inicialização ─────────────────────────────────────────────────────────
+carregarTickets();
+setInterval(carregarTickets, 60000); // atualiza a cada 1 minuto
+</script>
+</body>
+</html>
