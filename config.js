@@ -2,22 +2,14 @@
 // ARQUIVO DE CONFIGURAÇÃO — LEARNING PASSPORT SUPORTE
 // ═══════════════════════════════════════════════════════════════════════════
 // Este arquivo pode ser editado pela equipe sem conhecimento de programação.
-// Após editar, salve o arquivo e reinicie o servidor no Render.
+// Após editar, salve o arquivo no GitHub — o Render atualizará em ~1 minuto.
 //
-// VERSÃO: 1.1 — alinhada ao Fluxo de Atendimento V0
-// Mudanças em relação à versão anterior:
-//   • Adicionadas etapas de coleta de telefone e e-mail antes do perfil
-//   • Categorias do Gestor atualizadas (removidas RMA e Hub; adicionada Análise)
-//   • Categorias agora classificadas como (a) automático ou (b) ticket
-//   • Adicionada opção "Voltar ao menu anterior" em todos os menus de perfil
-//   • Fluxo pós-resposta automática inclui opção de voltar ao menu
-//   • Fluxo pós-ticket: opções de retornar ao início, novo chamado ou encerrar
+// VERSÃO: 2.0 — alinhada ao Fluxo de Atendimento V0
 // ═══════════════════════════════════════════════════════════════════════════
 
 module.exports = {
 
   // ─── MENSAGENS DO BOT ────────────────────────────────────────────────────
-  // Edite os textos que o bot envia para os usuários
 
   MENSAGENS: {
     boas_vindas:
@@ -27,7 +19,7 @@ module.exports = {
 
     solicitar_telefone: (nome) =>
       `Obrigado, *${nome}*! 📞\n\n`
-      + `Qual é o seu *número de telefone* (com DDD)?\n`
+      + `Qual é o seu *número de telefone* com DDD?\n`
       + `_(Ex: 11 91234-5678)_`,
 
     solicitar_email: () =>
@@ -38,7 +30,8 @@ module.exports = {
       `Perfeito! Para te ajudar melhor, selecione o seu perfil:\n\n`
       + `1️⃣ Sou *Estudante*\n`
       + `2️⃣ Sou *Educador*\n`
-      + `3️⃣ Sou *Gestor* / Ponto Focal`,
+      + `3️⃣ Sou *Gestor* / Ponto Focal\n`
+      + `4️⃣ 🔙 Voltar ao início`,
 
     selecionar_categoria: (perfil) =>
       `Entendido! Você é *${perfil}*.\n\nSobre o que precisa de ajuda?\n\n`,
@@ -46,13 +39,14 @@ module.exports = {
     digitar_duvida:
       `Perfeito! Descreva sua dúvida com o máximo de detalhes possível. 💬`,
 
-    // Exibido após resposta automática (FAQ / IA)
+    // Exibido após resposta automática (FAQ / IA) — caminho (a)
     pos_resposta_automatica:
       `Isso resolveu sua dúvida?\n\n`
       + `1️⃣ ✅ Sim — problema resolvido!\n`
-      + `2️⃣ ❌ Não — preciso de mais ajuda (abrir ticket)\n`
+      + `2️⃣ ❌ Não — abrir ticket para atendimento humano\n`
       + `3️⃣ 🔙 Voltar ao menu anterior`,
 
+    // Exibido após ticket registrado — caminho (b)
     ticket_aberto: (id) =>
       `✅ Ticket *${id}* registrado com sucesso!\n\n`
       + `Um ponto focal entrará em contato em breve.\n`
@@ -62,12 +56,16 @@ module.exports = {
       + `2️⃣ 📋 Abrir novo chamado\n`
       + `3️⃣ 👋 Encerrar`,
 
+    // Reenvia as opções pós-ticket se o usuário digitar algo inválido
+    ticket_aberto_opcoes: () =>
+      `O que deseja fazer agora?\n\n`
+      + `1️⃣ 🔄 Retornar ao início\n`
+      + `2️⃣ 📋 Abrir novo chamado\n`
+      + `3️⃣ 👋 Encerrar`,
+
     encerramento: (nome) =>
       `Ótimo! Fico feliz em ter ajudado, *${nome}*! 🎉\n\n`
       + `Se precisar de algo, é só chamar. Tenha um ótimo dia!`,
-
-    continuar:
-      `Claro! Pode enviar sua próxima dúvida. Estou aqui. 💬`,
 
     nao_entendido:
       `Desculpe, não entendi. Por favor, responda com o *número* da opção desejada.`,
@@ -78,11 +76,9 @@ module.exports = {
   },
 
   // ─── PERFIS DE USUÁRIO ───────────────────────────────────────────────────
-  // Cada categoria tem um "tipo":
-  //   "auto"   → o bot responde via FAQ / IA (caminho a)
-  //   "ticket" → o bot abre um chamado diretamente (caminho b)
-  //
-  // Adicione ou edite perfis e suas categorias conforme necessário.
+  // tipo "auto"   → resposta via FAQ / IA (caminho a)
+  // tipo "ticket" → abre chamado direto (caminho b)
+  // tipo "voltar" → volta ao menu de perfil
 
   PERFIS: {
     "1": {
@@ -94,7 +90,7 @@ module.exports = {
         "3": { label: "Não consigo acessar a plataforma",      tipo: "ticket" },
         "4": { label: "Dúvida sobre um curso ou atividade",    tipo: "ticket" },
         "5": { label: "Outro assunto",                         tipo: "ticket" },
-        "6": { label: "Voltar ao menu anterior",               tipo: "voltar" },
+        "6": { label: "🔙 Voltar ao menu anterior",            tipo: "voltar" },
       },
     },
     "2": {
@@ -106,7 +102,7 @@ module.exports = {
         "3": { label: "Não consigo acessar a plataforma",      tipo: "ticket" },
         "4": { label: "Emitir certificado",                    tipo: "ticket" },
         "5": { label: "Outro assunto",                         tipo: "ticket" },
-        "6": { label: "Voltar ao menu anterior",               tipo: "voltar" },
+        "6": { label: "🔙 Voltar ao menu anterior",            tipo: "voltar" },
       },
     },
     "3": {
@@ -117,14 +113,13 @@ module.exports = {
         "2": { label: "Cadastrar usuários ou escolas",         tipo: "auto"   },
         "3": { label: "Análise e estatísticas da plataforma",  tipo: "auto"   },
         "4": { label: "Outro assunto",                         tipo: "ticket" },
-        "5": { label: "Voltar ao menu anterior",               tipo: "voltar" },
+        "5": { label: "🔙 Voltar ao menu anterior",            tipo: "voltar" },
       },
     },
+    // Opção 4 no menu de perfil = voltar ao início (tratada no bot.js)
   },
 
   // ─── CONTEXTO PARA A IA ──────────────────────────────────────────────────
-  // Este texto é enviado ao Claude para que ele saiba como responder.
-  // Edite para adicionar informações específicas do seu projeto.
 
   CONTEXTO_IA: `Você é o assistente virtual de suporte da plataforma *Learning Passport Brasil*
 (brasil.learningpassport.org), um projeto do UNICEF Brasil em parceria com o programa
@@ -158,9 +153,6 @@ Se não souber responder, oriente o usuário a acionar o ponto focal local ou
 enviar e-mail para o suporte do projeto.`,
 
   // ─── FAQ — RESPOSTAS AUTOMÁTICAS ─────────────────────────────────────────
-  // Se a dúvida do usuário contiver as palavras-chave abaixo,
-  // o bot responde diretamente sem chamar a IA (mais rápido e econômico).
-  // Deixe o array de keywords vazio [] para desativar uma entrada.
 
   FAQ: [
     {
@@ -227,23 +219,11 @@ enviar e-mail para o suporte do projeto.`,
   // ─── CONFIGURAÇÕES GERAIS ────────────────────────────────────────────────
 
   CONFIG: {
-    // Após quantos minutos sem resposta o bot encerra a sessão
-    timeout_sessao_minutos: 30,
-
-    // Número máximo de mensagens por sessão antes de sugerir ticket
-    max_mensagens_antes_ticket: 6,
-
-    // Texto do rodapé nos tickets registrados no Google Sheets
-    rodape_ticket: "Gerado automaticamente pelo bot de suporte — Learning Passport Brasil",
-
-    // Nome da aba no Google Sheets onde os tickets serão salvos
-    aba_tickets: "Tickets",
-
-    // Nome da aba no Google Sheets para cadastro de pontos focais
-    aba_pontos_focais: "Pontos_Focais",
-
-    // Colunas salvas no Google Sheets para cada ticket
-    // (ordem das colunas na planilha)
-    colunas_ticket: ["id", "data", "nome", "telefone", "email", "perfil", "categoria", "duvida", "status"],
+    timeout_sessao_minutos:       30,
+    max_mensagens_antes_ticket:   6,
+    rodape_ticket:                "Gerado automaticamente pelo bot de suporte — Learning Passport Brasil",
+    aba_tickets:                  "Tickets",
+    aba_pontos_focais:            "Pontos_Focais",
+    colunas_ticket:               ["id", "data", "hora", "nome", "telefone", "email", "perfil", "categoria", "duvida", "status"],
   },
 };
