@@ -17,6 +17,7 @@ const sessoes = new Map();
 
 // ─── Estados possíveis da conversa ────────────────────────────────────────
 const ESTADOS = {
+  AGUARDANDO_INICIO:     "aguardando_inicio",     // qualquer msg → mostra boas-vindas e pede nome
   AGUARDANDO_NOME:       "aguardando_nome",
   AGUARDANDO_TELEFONE:   "aguardando_telefone",
   AGUARDANDO_EMAIL:      "aguardando_email",
@@ -43,7 +44,7 @@ function gerarIdTicket() {
 function criarSessao(telefone) {
   const sessao = {
     telefone,
-    estado: ESTADOS.AGUARDANDO_NOME,
+    estado: ESTADOS.AGUARDANDO_INICIO,
     nome: null,
     telefone_contato: null,
     email: null,
@@ -116,12 +117,24 @@ async function processarMensagem(telefone, textoRecebido) {
 
   let resposta = null;
 
-  // ── ESTADO: aguardando nome ────────────────────────────────────────────
-  if (sessao.estado === ESTADOS.AGUARDANDO_NOME) {
-    sessao.nome   = texto; // nome completo (nome + sobrenome)
-    const primeiroNome = texto.split(" ")[0];
-    sessao.estado = ESTADOS.AGUARDANDO_TELEFONE;
-    resposta = MENSAGENS.solicitar_telefone(primeiroNome);
+  // ── ESTADO: início — qualquer msg dispara boas-vindas e pede nome ─────
+  if (sessao.estado === ESTADOS.AGUARDANDO_INICIO) {
+    sessao.estado = ESTADOS.AGUARDANDO_NOME;
+    resposta = MENSAGENS.boas_vindas;
+  }
+
+  // ── ESTADO: aguardando nome completo ──────────────────────────────────
+  else if (sessao.estado === ESTADOS.AGUARDANDO_NOME) {
+    const partes = texto.trim().split(/\s+/);
+    if (partes.length < 2) {
+      // Rejeita se não tiver ao menos nome e sobrenome
+      resposta = `Por favor, informe seu *nome completo* (nome e sobrenome).\n\n_(Ex: João Silva)_`;
+    } else {
+      sessao.nome   = texto.trim();
+      const primeiroNome = partes[0];
+      sessao.estado = ESTADOS.AGUARDANDO_TELEFONE;
+      resposta = MENSAGENS.solicitar_telefone(primeiroNome);
+    }
   }
 
   // ── ESTADO: aguardando telefone de contato ────────────────────────────
@@ -274,6 +287,8 @@ async function processarMensagem(telefone, textoRecebido) {
     sessoes.delete(telefone);
     criarSessao(telefone);
     resposta = MENSAGENS.boas_vindas;
+    // Avança para AGUARDANDO_NOME já que boas_vindas foi enviada
+    sessoes.get(telefone).estado = ESTADOS.AGUARDANDO_NOME;
   }
 
   return resposta || MENSAGENS.erro_tecnico;
