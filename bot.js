@@ -1,15 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════════
 // MÓDULO: Bot — Gerenciamento de sessões e fluxo de conversa
-// Versão: 2.0 — alinhada ao Fluxo de Atendimento V0
+// Versão: 2.1 — alinhada ao Fluxo de Atendimento V0
 //
-// Mudanças em relação à versão anterior:
-//   • Adicionadas etapas AGUARDANDO_TELEFONE e AGUARDANDO_EMAIL
-//   • Categorias agora têm tipo "auto", "ticket" ou "voltar"
-//   • Caminho (a) automático: FAQ/IA → pergunta se resolveu → 3 opções
-//   • Caminho (b) ticket: abre chamado direto → mostra número → 3 opções
-//   • Opção "Voltar ao menu anterior" implementada em todos os menus
-//   • Pós-ticket: 1=retornar ao início / 2=novo chamado / 3=encerrar
-//   • Pós-resposta automática: 1=encerrar / 2=abrir ticket / 3=voltar menu
+// Mudanças em relação à versão 2.0:
+//   • Saudação inicial identifica o canal (Territórios Conectados)
+//   • AGUARDANDO_NOME agora captura nome completo (nome + sobrenome)
+//   • Fluxo: saudação → nome completo → telefone → email → perfil
 // ═══════════════════════════════════════════════════════════════════════
 
 const { MENSAGENS, PERFIS, CONFIG } = require("./config");
@@ -122,9 +118,10 @@ async function processarMensagem(telefone, textoRecebido) {
 
   // ── ESTADO: aguardando nome ────────────────────────────────────────────
   if (sessao.estado === ESTADOS.AGUARDANDO_NOME) {
-    sessao.nome   = texto.split(" ")[0];
+    sessao.nome   = texto; // nome completo (nome + sobrenome)
+    const primeiroNome = texto.split(" ")[0];
     sessao.estado = ESTADOS.AGUARDANDO_TELEFONE;
-    resposta = MENSAGENS.solicitar_telefone(sessao.nome);
+    resposta = MENSAGENS.solicitar_telefone(primeiroNome);
   }
 
   // ── ESTADO: aguardando telefone de contato ────────────────────────────
