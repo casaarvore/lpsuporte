@@ -13,14 +13,13 @@ module.exports = {
 
   MENSAGENS: {
     boas_vindas:
-      `Olá! 👋 Bem-vindo ao *Canal de Suporte — Territórios Conectados* 🌍\n\n`
-      + `Este é o canal oficial de suporte da plataforma *Passaporte para Aprendizagem*.\n`
-      + `Estamos aqui para ajudar alunos, educadores e gestores.\n\n`
-      + `Para começar, por favor informe seu *nome completo* (nome e sobrenome):`,
+      `Olá! 👋 Bem-vindo ao suporte do *Passaporte para Aprendizagem* 🌍\n\n`
+      + `Sou o assistente virtual do projeto Territórios Conectados.\n\n`
+      + `Qual é o seu *nome*?`,
 
     solicitar_telefone: (nome) =>
       `Obrigado, *${nome}*! 📞\n\n`
-      + `Qual é o seu *número de telefone com DDD*?\n`
+      + `Qual é o seu *número de telefone* com DDD?\n`
       + `_(Ex: 11 91234-5678)_`,
 
     solicitar_email: () =>
@@ -90,7 +89,7 @@ module.exports = {
         "2": { label: "Emitir certificado",                    tipo: "auto"   },
         "3": { label: "Não consigo acessar a plataforma",      tipo: "ticket" },
         "4": { label: "Dúvida sobre um curso ou atividade",    tipo: "ticket" },
-        "5": { label: "Outro assunto",                         tipo: "ticket" },
+        "5": { label: "Outro assunto",                         tipo: "auto"   },
         "6": { label: "🔙 Voltar ao menu anterior",            tipo: "voltar" },
       },
     },
@@ -102,7 +101,7 @@ module.exports = {
         "2": { label: "Criar ou publicar um curso",            tipo: "auto"   },
         "3": { label: "Não consigo acessar a plataforma",      tipo: "ticket" },
         "4": { label: "Emitir certificado",                    tipo: "ticket" },
-        "5": { label: "Outro assunto",                         tipo: "ticket" },
+        "5": { label: "Outro assunto",                         tipo: "auto"   },
         "6": { label: "🔙 Voltar ao menu anterior",            tipo: "voltar" },
       },
     },
@@ -113,7 +112,7 @@ module.exports = {
         "1": { label: "Problemas com login ou senha",          tipo: "auto"   },
         "2": { label: "Cadastrar usuários ou escolas",         tipo: "auto"   },
         "3": { label: "Análise e estatísticas da plataforma",  tipo: "auto"   },
-        "4": { label: "Outro assunto",                         tipo: "ticket" },
+        "4": { label: "Outro assunto",                         tipo: "auto"   },
         "5": { label: "🔙 Voltar ao menu anterior",            tipo: "voltar" },
       },
     },
