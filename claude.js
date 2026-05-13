@@ -1,12 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════════
-// MÓDULO: Claude IA
-// Gera respostas contextualizadas ao Learning Passport
+// MÓDULO: IA — Geração de respostas contextualizadas ao Learning Passport
+//
+// v3.0 — Migrado de Anthropic Claude para OpenAI GPT-4o-mini
+//   • Endpoint: https://api.openai.com/v1/chat/completions
+//   • Modelo: gpt-4o-mini (custo baixo, qualidade alta para suporte)
+//   • Variável de ambiente: OPENAI_API_KEY
+//   • FAQ local mantido — evita chamadas desnecessárias à API
+//   • Fallback de erro mantido — bot continua funcionando se API falhar
 // ═══════════════════════════════════════════════════════════════════════
 
 const axios = require("axios");
 const { CONTEXTO_IA, FAQ } = require("./config");
 
-// ─── Verificar FAQ local antes de chamar a IA ──────────────────────────────
+// ─── Verificar FAQ local antes de chamar a IA ─────────────────────────────
 // Economiza tokens da API quando a pergunta é comum
 function verificarFAQ(mensagem) {
   const texto = mensagem.toLowerCase();
@@ -18,12 +24,12 @@ function verificarFAQ(mensagem) {
   return null;
 }
 
-// ─── Chamar Claude API ─────────────────────────────────────────────────────
+// ─── Chamar OpenAI API ────────────────────────────────────────────────────
 async function gerarResposta({ perfil, categoria, historico, mensagemAtual }) {
-  // Tenta FAQ primeiro
+  // Tenta FAQ primeiro — evita custo de API para perguntas comuns
   const respostaFAQ = verificarFAQ(mensagemAtual);
   if (respostaFAQ) {
-    console.log("[Claude] Respondido via FAQ local.");
+    console.log("[IA] Respondido via FAQ local.");
     return respostaFAQ;
   }
 
@@ -36,39 +42,40 @@ Contexto desta conversa:
 
 Responda de forma direta e prática. Use formatação simples compatível com WhatsApp (*negrito*, listas com números ou ✔️). Máximo 3 parágrafos.`;
 
-    // Monta histórico de mensagens para contexto
-    const mensagens = historico.map((m) => ({
-      role: m.de === "usuario" ? "user" : "assistant",
-      content: m.texto,
-    }));
-    mensagens.push({ role: "user", content: mensagemAtual });
+    // Monta histórico no formato OpenAI
+    const mensagens = [
+      { role: "system", content: systemPrompt },
+      ...historico.map((m) => ({
+        role: m.de === "usuario" ? "user" : "assistant",
+        content: m.texto,
+      })),
+      { role: "user", content: mensagemAtual },
+    ];
 
     const response = await axios.post(
-      "https://api.anthropic.com/v1/messages",
+      "https://api.openai.com/v1/chat/completions",
       {
-        model: "claude-sonnet-4-20250514",
+        model: "gpt-4o-mini",
         max_tokens: 1000,
-        system: systemPrompt,
         messages: mensagens,
       },
       {
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": process.env.ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
         },
         timeout: 30000,
       }
     );
 
-    const texto = response.data.content?.[0]?.text;
+    const texto = response.data.choices?.[0]?.message?.content;
     if (!texto) throw new Error("Resposta vazia da API");
 
-    console.log("[Claude] Resposta gerada com sucesso.");
+    console.log("[IA] Resposta gerada com sucesso via OpenAI.");
     return texto;
   } catch (err) {
-    console.error("[Claude] Erro:", err.message);
-    return null; // server.js trata o null com mensagem de erro
+    console.error("[IA] Erro ao chamar OpenAI:", err.response?.data?.error?.message || err.message);
+    return null;
   }
 }
 
