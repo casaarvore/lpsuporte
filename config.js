@@ -13,13 +13,14 @@ module.exports = {
 
   MENSAGENS: {
     boas_vindas:
-      `Olá! 👋 Bem-vindo ao suporte do *Passaporte para Aprendizagem* 🌍\n\n`
-      + `Sou o assistente virtual do projeto Territórios Conectados.\n\n`
-      + `Qual é o seu *nome*?`,
+      `Olá! 👋 Bem-vindo ao *Canal de Suporte — Territórios Conectados* 🌍\n\n`
+      + `Este é o canal oficial de suporte da plataforma *Passaporte para Aprendizagem*.\n`
+      + `Estamos aqui para ajudar alunos, educadores e gestores.\n\n`
+      + `Para começar, por favor informe seu *nome completo* (nome e sobrenome):`,
 
     solicitar_telefone: (nome) =>
       `Obrigado, *${nome}*! 📞\n\n`
-      + `Qual é o seu *número de telefone* com DDD?\n`
+      + `Qual é o seu *número de telefone com DDD*?\n`
       + `_(Ex: 11 91234-5678)_`,
 
     solicitar_email: () =>
