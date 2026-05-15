@@ -4,8 +4,13 @@
 // Este arquivo pode ser editado pela equipe sem conhecimento de programação.
 // Após editar, salve o arquivo no GitHub — o Render atualizará em ~1 minuto.
 //
-// VERSÃO: 2.0 — alinhada ao Fluxo de Atendimento V0
+// VERSÃO: 2.1 — indexa a base de conhecimento knowledge.js
+//   • Importa REFERENCIAS, KNOWLEDGE, FAQ_GESTORES e CONTEXTO_GESTORES
+//   • FAQ_GESTORES é concatenada ao FAQ principal (spread no final do array)
+//   • CONTEXTO_GESTORES é anexado ao CONTEXTO_IA usado pelo prompt da IA
 // ═══════════════════════════════════════════════════════════════════════════
+
+const knowledge = require("./knowledge");
 
 module.exports = {
 
@@ -49,8 +54,12 @@ module.exports = {
     // Exibido após ticket registrado — caminho (b)
     ticket_aberto: (id) =>
       `✅ Ticket *${id}* registrado com sucesso!\n\n`
-      + `Um ponto focal entrará em contato em breve por aqui. Deixe detalhada sua dúvida para melhor atendermos.\n`
-      + `Guarde este número para acompanhar sua solicitação.\n\n`
+      + `🕒 *Prazo de retorno:* até *24 horas* em dias úteis.\n`
+      + `_(Em feriados ou finais de semana, o atendimento pode ocorrer no próximo dia útil.)_\n\n`
+      + `📞 *Como você será contatado:* o ponto focal responderá pelo *próprio WhatsApp* `
+      + `usado nesta conversa ou pelo *e-mail cadastrado na plataforma*.\n\n`
+      + `📌 Guarde o número *${id}* para acompanhar sua solicitação. `
+      + `Caso precise complementar a dúvida, basta responder mencionando esse número.\n\n`
       + `O que deseja fazer agora?\n\n`
       + `1️⃣ 🔄 Retornar ao início\n`
       + `2️⃣ 📋 Abrir novo chamado\n`
@@ -150,7 +159,8 @@ CERTIFICADOS:
 - Acessados pela área do usuário na plataforma
 
 Se não souber responder, oriente o usuário a acionar o ponto focal local ou
-enviar e-mail para o suporte do projeto.`,
+enviar e-mail para o suporte do projeto.
+` + knowledge.CONTEXTO_GESTORES,
 
   // ─── FAQ — RESPOSTAS AUTOMÁTICAS ─────────────────────────────────────────
 
@@ -214,6 +224,9 @@ enviar e-mail para o suporte do projeto.`,
         + `4. Exporte em CSV ou visualize na tela\n\n`
         + `Os dados são atualizados em tempo real conforme os alunos concluem atividades.`,
     },
+
+    // FAQ específica de gestores (importada de knowledge.js)
+    ...knowledge.FAQ_GESTORES,
   ],
 
   // ─── CONFIGURAÇÕES GERAIS ────────────────────────────────────────────────
@@ -226,4 +239,11 @@ enviar e-mail para o suporte do projeto.`,
     aba_pontos_focais:            "Pontos_Focais",
     colunas_ticket:               ["id", "data", "hora", "nome", "telefone", "email", "perfil", "categoria", "duvida", "status"],
   },
+
+  // ─── BASE DE CONHECIMENTO (importada de knowledge.js) ────────────────────
+  // Disponibiliza, para outros módulos do bot, as referências e os blocos
+  // estruturados do guia de gestores.
+
+  REFERENCIAS: knowledge.REFERENCIAS,
+  KNOWLEDGE:   knowledge.KNOWLEDGE,
 };
