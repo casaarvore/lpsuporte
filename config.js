@@ -20,11 +20,20 @@ module.exports = {
     boas_vindas:
       `Olá! 👋 Bem-vindo ao suporte do *Passaporte para Aprendizagem (Learning Passport)* 🌍\n\n`
       + `Sou o assistente virtual do projeto Territórios Conectados.\n\n`
-      + `Qual é o seu *nome*?`,
+      + `Para começarmos, informe seu *nome completo* (nome e sobrenome).\n`
+      + `_(Ex: Ana Beatriz da Conceição)_`,
 
-    solicitar_telefone: (nome) =>
+    // Exibido após o nome — pede confirmação do número detectado pelo Z-API
+    confirmar_telefone: (nome, numeroFormatado) =>
       `Obrigado, *${nome}*! 📞\n\n`
-      + `Qual é o seu *número de telefone* com DDD?\n`
+      + `Identifiquei que você está falando pelo número *${numeroFormatado}*.\n\n`
+      + `Esse é o melhor número para contato?\n\n`
+      + `1️⃣ ✅ Sim, pode usar este número\n`
+      + `2️⃣ ✏️ Não, quero informar outro número`,
+
+    // Exibido apenas se o usuário escolher "informar outro número"
+    solicitar_telefone:
+      `Tudo bem! Por favor, digite o *número de telefone* com DDD que prefere informar.\n`
       + `_(Ex: 11 91234-5678)_`,
 
     solicitar_email: () =>

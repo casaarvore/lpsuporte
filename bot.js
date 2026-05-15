@@ -1,11 +1,15 @@
 // ═══════════════════════════════════════════════════════════════════════
 // MÓDULO: Bot — Gerenciamento de sessões e fluxo de conversa
-// Versão: 2.1 — alinhada ao Fluxo de Atendimento V0
+// Versão: 2.2 — usa o número detectado pelo Z-API
 //
-// Mudanças em relação à versão 2.0:
-//   • Saudação inicial identifica o canal (Territórios Conectados)
-//   • AGUARDANDO_NOME agora captura nome completo (nome + sobrenome)
-//   • Fluxo: saudação → nome completo → telefone → email → perfil
+// Mudanças em relação à versão 2.1:
+//   • boas_vindas pede nome completo em uma única pergunta
+//   • Novo estado CONFIRMAR_TELEFONE: apresenta o número do WhatsApp
+//     detectado pelo Z-API e pede confirmação ao usuário
+//   • AGUARDANDO_TELEFONE permanece como caminho alternativo (quando o
+//     usuário opta por informar outro número)
+//   • Função utilitária formatarTelefone para apresentação ao usuário
+//   • Fluxo: saudação → nome completo → confirmar telefone → email → perfil
 // ═══════════════════════════════════════════════════════════════════════
 
 const { MENSAGENS, PERFIS, CONFIG } = require("./config");
@@ -19,7 +23,8 @@ const sessoes = new Map();
 const ESTADOS = {
   AGUARDANDO_INICIO:     "aguardando_inicio",     // qualquer msg → mostra boas-vindas e pede nome
   AGUARDANDO_NOME:       "aguardando_nome",
-  AGUARDANDO_TELEFONE:   "aguardando_telefone",
+  CONFIRMAR_TELEFONE:    "confirmar_telefone",    // exibe número Z-API e pede confirmação (1/2)
+  AGUARDANDO_TELEFONE:   "aguardando_telefone",   // ativado se o usuário escolheu informar outro número
   AGUARDANDO_EMAIL:      "aguardando_email",
   AGUARDANDO_PERFIL:     "aguardando_perfil",
   AGUARDANDO_CATEGORIA:  "aguardando_categoria",
@@ -28,6 +33,28 @@ const ESTADOS = {
   AGUARDANDO_POS_TICKET: "aguardando_pos_ticket",  // pós abertura de ticket
   ENCERRADO:             "encerrado",
 };
+
+// ─── Formatador de telefone para exibição ao usuário ──────────────────────
+// O Z-API entrega o telefone em formato internacional ("5519995908410").
+// Esta função converte para o formato brasileiro: "(19) 99590-8410".
+// Suporta celular (13 dígitos) e fixo (12 dígitos). Em caso de formato
+// inesperado, devolve o número original sem quebrar o fluxo.
+function formatarTelefone(telefone) {
+  const num = String(telefone || "").replace(/\D/g, "");
+  if (num.length === 13 && num.startsWith("55")) {
+    const ddd    = num.slice(2, 4);
+    const parte1 = num.slice(4, 9);  // 9XXXX (celular com nono dígito)
+    const parte2 = num.slice(9);     // XXXX
+    return `(${ddd}) ${parte1}-${parte2}`;
+  }
+  if (num.length === 12 && num.startsWith("55")) {
+    const ddd    = num.slice(2, 4);
+    const parte1 = num.slice(4, 8);  // XXXX (fixo)
+    const parte2 = num.slice(8);     // XXXX
+    return `(${ddd}) ${parte1}-${parte2}`;
+  }
+  return telefone;
+}
 
 // ─── Gerador de ID de ticket ───────────────────────────────────────────────
 function gerarIdTicket() {
@@ -128,16 +155,39 @@ async function processarMensagem(telefone, textoRecebido) {
     const partes = texto.trim().split(/\s+/);
     if (partes.length < 2) {
       // Rejeita se não tiver ao menos nome e sobrenome
-      resposta = `Por favor, informe seu *nome completo* (nome e sobrenome).\n\n_(Ex: João Silva)_`;
+      resposta = `Por favor, informe seu *nome completo* (nome e sobrenome).\n\n_(Ex: Ana Beatriz da Conceição)_`;
     } else {
       sessao.nome   = texto.trim();
       const primeiroNome = partes[0];
-      sessao.estado = ESTADOS.AGUARDANDO_TELEFONE;
-      resposta = MENSAGENS.solicitar_telefone(primeiroNome);
+      // Apresenta o número detectado pelo Z-API e pede confirmação
+      sessao.estado = ESTADOS.CONFIRMAR_TELEFONE;
+      const numeroFormatado = formatarTelefone(telefone);
+      resposta = MENSAGENS.confirmar_telefone(primeiroNome, numeroFormatado);
     }
   }
 
-  // ── ESTADO: aguardando telefone de contato ────────────────────────────
+  // ── ESTADO: confirmar telefone detectado pelo Z-API (1=sim, 2=outro) ──
+  else if (sessao.estado === ESTADOS.CONFIRMAR_TELEFONE) {
+    if (texto === "1") {
+      // Usuário confirma o número detectado: usa o do Z-API
+      sessao.telefone_contato = telefone;
+      sessao.estado = ESTADOS.AGUARDANDO_EMAIL;
+      resposta = MENSAGENS.solicitar_email();
+    } else if (texto === "2") {
+      // Usuário quer informar outro número: vai para o estado clássico
+      sessao.estado = ESTADOS.AGUARDANDO_TELEFONE;
+      resposta = MENSAGENS.solicitar_telefone;
+    } else {
+      // Reapresenta a pergunta se a resposta não for 1 nem 2
+      const primeiroNome = (sessao.nome || "").split(/\s+/)[0];
+      const numeroFormatado = formatarTelefone(telefone);
+      resposta = MENSAGENS.nao_entendido + "\n\n"
+               + MENSAGENS.confirmar_telefone(primeiroNome, numeroFormatado);
+    }
+  }
+
+  // ── ESTADO: aguardando telefone de contato (caminho alternativo) ──────
+  // Ativado quando o usuário escolheu "informar outro número" no estado anterior.
   else if (sessao.estado === ESTADOS.AGUARDANDO_TELEFONE) {
     sessao.telefone_contato = texto;
     sessao.estado = ESTADOS.AGUARDANDO_EMAIL;
