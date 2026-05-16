@@ -105,8 +105,8 @@ module.exports = {
       categorias: {
         "1": { label: "Problemas com login ou senha",          tipo: "auto"   },
         "2": { label: "Emitir certificado",                    tipo: "auto"   },
-        "3": { label: "Não consigo acessar a plataforma",      tipo: "ticket" },
-        "4": { label: "Dúvida sobre um curso ou atividade",    tipo: "ticket" },
+        "3": { label: "Não consigo acessar a plataforma",      tipo: "auto"   },
+        "4": { label: "Dúvida sobre um curso ou atividade",    tipo: "auto"   },
         "5": { label: "Outro assunto",                         tipo: "auto"   },
         "6": { label: "🔙 Voltar ao menu anterior",            tipo: "voltar" },
       },
@@ -117,8 +117,8 @@ module.exports = {
       categorias: {
         "1": { label: "Problemas com login ou senha",          tipo: "auto"   },
         "2": { label: "Criar ou publicar um curso",            tipo: "auto"   },
-        "3": { label: "Não consigo acessar a plataforma",      tipo: "ticket" },
-        "4": { label: "Emitir certificado",                    tipo: "ticket" },
+        "3": { label: "Não consigo acessar a plataforma",      tipo: "auto"   },
+        "4": { label: "Emitir certificado",                    tipo: "auto"   },
         "5": { label: "Outro assunto",                         tipo: "auto"   },
         "6": { label: "🔙 Voltar ao menu anterior",            tipo: "voltar" },
       },
@@ -175,7 +175,41 @@ enviar e-mail para o suporte do projeto.
 
   FAQ: [
     {
-      keywords: ["senha", "password", "esqueci", "recuperar", "login"],
+      keywords: [
+        "não consigo acessar", "nao consigo acessar", "não consigo entrar",
+        "nao consigo entrar", "acesso", "não acessa", "nao acessa",
+        "plataforma não abre", "plataforma nao abre", "site fora do ar",
+        "não funciona", "nao funciona", "não entra", "nao entra",
+        "conseguindo entrar", "conseguindo acessar", "estou entrando",
+        "consigo entrar", "consigo acessar", "não estou conseguindo"
+      ],
+      resposta:
+        `🔍 *Não está conseguindo acessar a plataforma?*\n\n`
+        + `Vamos verificar juntos algumas possibilidades. Tente, na ordem:\n\n`
+        + `*1. Confirme o endereço de acesso*\n`
+        + `O endereço correto é: brasil.learningpassport.org\n`
+        + `(em letras minúsculas, sem espaços e sem "www")\n\n`
+        + `*2. Verifique a conexão com a Internet*\n`
+        + `Confirme se o Wi-Fi ou os dados móveis estão ativos. `
+        + `Se você está usando o *Hub Offline*, conecte-se à rede *LearningPassport* `
+        + `(senha: learningpassport).\n\n`
+        + `*3. Teste em janela anônima*\n`
+        + `Abra uma janela anônima (ou privada) no navegador e tente acessar novamente. `
+        + `Isso elimina problemas de cache.\n\n`
+        + `*4. Verifique sua senha*\n`
+        + `Se aparecer "senha incorreta", clique em *"Forgot your password?"* `
+        + `na tela de login para redefinir.\n\n`
+        + `*5. Erro 502 ou tela em branco?*\n`
+        + `A plataforma pode estar reiniciando. Aguarde *5 minutos* e tente novamente.\n\n`
+        + `Se nada disso resolver, ao final desta mensagem responda *"2"* para abrir um ticket. `
+        + `Um ponto focal entrará em contato em até 24 horas.`,
+    },
+    {
+      keywords: [
+        "senha", "password", "esqueci", "recuperar", "login",
+        "esqueci usuario", "esqueci usuário", "esqueci o login",
+        "esqueci nome de usuario", "esqueci nome de usuário", "perdi senha"
+      ],
       resposta:
         `🔑 *Recuperação de senha:*\n\n`
         + `1. Acesse brasil.learningpassport.org\n`
@@ -195,7 +229,11 @@ enviar e-mail para o suporte do projeto.
         + `O certificado só aparece após 100% de conclusão do curso.`,
     },
     {
-      keywords: ["502", "bad gateway", "erro", "não abre", "não carrega"],
+      keywords: [
+        "502", "bad gateway", "erro", "não abre", "não carrega",
+        "travou", "travada", "ficou parado", "ficou parada",
+        "deu pau", "lentidão", "lenta", "fora do ar", "caiu"
+      ],
       resposta:
         `⚠️ *Erro 502 Bad Gateway:*\n\n`
         + `Isso acontece quando a plataforma está reiniciando. É temporário.\n\n`
@@ -206,12 +244,14 @@ enviar e-mail para o suporte do projeto.
     {
       keywords: ["wifi", "wi-fi", "rede", "conectar", "hub", "offline"],
       resposta:
-        `📶 *Conectar ao Hub Offline:*\n\n`
+        `📶 *Hub Offline (uso sem Internet na escola):*\n\n`
+        + `A plataforma só funciona offline nas escolas que possuem o dispositivo Hub.\n\n`
+        + `Se a sua escola tem o Hub:\n`
         + `1. Abra as configurações de Wi-Fi do seu dispositivo\n`
         + `2. Selecione a rede: *LearningPassport*\n`
         + `3. Senha: *learningpassport* (tudo minúsculo, sem espaços)\n`
         + `4. Abra o navegador e acesse o endereço informado pelo gestor\n\n`
-        + `A luz azul no dispositivo indica que está funcionando.`,
+        + `A luz azul no dispositivo indica que está funcionando corretamente.`,
     },
     {
       keywords: ["cadastrar", "cadastro", "usuário", "escola", "criar conta"],
@@ -251,8 +291,10 @@ enviar e-mail para o suporte do projeto.
 
   // ─── BASE DE CONHECIMENTO (importada de knowledge.js) ────────────────────
   // Disponibiliza, para outros módulos do bot, as referências e os blocos
-  // estruturados do guia de gestores.
+  // estruturados do guia de gestores. KNOWLEDGE_SYNTHESIS é a versão
+  // compacta usada pela IA para respostas mais precisas (ver claude.js).
 
-  REFERENCIAS: knowledge.REFERENCIAS,
-  KNOWLEDGE:   knowledge.KNOWLEDGE,
+  REFERENCIAS:         knowledge.REFERENCIAS,
+  KNOWLEDGE:           knowledge.KNOWLEDGE,
+  KNOWLEDGE_SYNTHESIS: knowledge.KNOWLEDGE_SYNTHESIS,
 };

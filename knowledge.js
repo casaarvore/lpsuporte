@@ -580,7 +580,11 @@ module.exports = {
         + `Os roteiros indicados estão também em https://passaporteparaaprendizagem.casadaarvore.art.br/`,
     },
     {
-      keywords: ["acesso restrito", "termos de privacidade", "idiomas", "configurações gerais"],
+      keywords: [
+        "acesso restrito", "termos de privacidade", "idiomas", "configurações gerais",
+        "configurações", "configuracoes", "configuração", "configuracao",
+        "aba de configurações", "como configurar"
+      ],
       resposta:
         `⚙️ *Configurações gerais da plataforma:*\n\n`
         + `Em *Configurações > Geral* é possível ajustar:\n`
@@ -591,7 +595,11 @@ module.exports = {
         + `• *Acesso Restrito à Atribuição de Cursos*`,
     },
     {
-      keywords: ["helpdesk", "abrir chamado", "fale conosco", "suporte microsoft", "documentação oficial"],
+      keywords: [
+        "helpdesk", "abrir chamado", "fale conosco", "suporte microsoft", "documentação oficial",
+        "como pedir ajuda", "preciso de ajuda", "como falar com suporte",
+        "como pedir suporte", "atendimento", "falar com alguem", "falar com alguém"
+      ],
       resposta:
         `❓ *Suporte avançado:*\n\n`
         + `• *Suporte local (WhatsApp):* +55 19 99590-8410\n`
@@ -611,7 +619,11 @@ module.exports = {
         + `entre estudantes e educadores. A interação ocorre por meio de `
         + `*exercícios automatizados* (avaliações com ou sem classificação).\n\n`
         + `Eventualmente, dentro de uma lição, o educador pode inserir um *link externo* `
-        + `(Padlet, Genially, formulários etc.) como recurso complementar.\n\n`
+        + `como recurso complementar:\n\n`
+        + `🔗 Padlet: https://padlet.com/\n`
+        + `🔗 Genially: https://genially.com/pt-br/\n`
+        + `🔗 Google Forms: https://docs.google.com/forms/\n`
+        + `🔗 Microsoft Forms: https://forms.office.com/\n\n`
         + `Para falar com o educador ou ponto focal, utilize os canais externos `
         + `(WhatsApp, e-mail) indicados pela sua escola.`,
     },
@@ -632,6 +644,7 @@ module.exports = {
       keywords: [
         "lgpd", "dados pessoais", "privacidade", "proteção de dados",
         "excluir conta", "apagar conta", "exclusão de dados", "remover dados",
+        "deletar conta", "remover cadastro", "apagar meus dados", "tirar do sistema"
       ],
       resposta:
         `🔒 *Dados pessoais e LGPD:*\n\n`
@@ -677,7 +690,7 @@ module.exports = {
         + `• *Prazo médio de retorno:* até *24 horas* em dias úteis. `
         + `Em feriados ou finais de semana, o atendimento pode ocorrer no próximo dia útil.\n`
         + `• *Canal de contato:* o ponto focal responderá pelo *próprio WhatsApp* `
-        + `usado para abrir o ticket ou pelo *e-mail cadastrado* na plataforma.\n`
+        + `(este número, +55 19 99590-8410) ou pelo *e-mail cadastrado* na plataforma.\n`
         + `• *Acompanhamento:* guarde o número do ticket (formato LP-AAMMDD-XXXX) `
         + `e mencione-o ao responder.\n\n`
         + `Se o problema persistir após o atendimento, abra um novo ticket por `
@@ -700,7 +713,10 @@ module.exports = {
         + `Mais informações: https://passaporteparaaprendizagem.casadaarvore.art.br/`,
     },
     {
-      keywords: ["para quem", "público", "para qual perfil", "professor", "gestor", "coordenador", "secretaria"],
+      keywords: [
+        "para quem", "público", "para qual perfil", "professor", "gestor", "coordenador", "secretaria",
+        "quem pode usar", "quem usa", "destinada", "quem é o público"
+      ],
       resposta:
         `👥 *Para quem é a plataforma:*\n\n`
         + `• Equipes técnicas das Redes Públicas de Ensino\n`
@@ -746,15 +762,201 @@ module.exports = {
         + `Acesse em: https://passaporteparaaprendizagem.casadaarvore.art.br/`,
     },
     {
-      keywords: ["progressão funcional", "comprovação", "validade do certificado", "carga horária"],
+      keywords: [
+        "progressão funcional", "comprovação", "validade do certificado", "carga horária",
+        "vale para progressão", "aceita certificado", "secretaria aceita"
+      ],
       resposta:
-        `🏆 *Sobre os certificados:*\n\n`
-        + `Ao concluir os cursos, o participante recebe *certificado digital* com a *carga horária* `
-        + `correspondente. Os certificados podem ser utilizados para *progressão funcional* `
-        + `e como comprovação de *formação continuada*.\n\n`
-        + `O certificado fica disponível na área do usuário após 100% de conclusão do curso.`,
+        `🏆 *O certificado vale para progressão funcional?*\n\n`
+        + `*Poderá valer se aceito pela sua Secretaria de Educação.*\n\n`
+        + `Os certificados digitais incluem todas as informações necessárias:\n`
+        + `✔️ Nome do participante\n`
+        + `✔️ Curso concluído\n`
+        + `✔️ Carga horária correspondente\n`
+        + `✔️ Data de conclusão\n\n`
+        + `Recomendamos consultar previamente a sua Secretaria sobre os critérios de aceitação.\n\n`
+        + `_O certificado fica disponível na sua área de usuário após 100% de conclusão do curso._`,
+    },
+
+    // ── Entradas adicionadas na Fase 1 ────────────────────────────────────
+    {
+      keywords: ["gratuita", "gratuito", "custa", "custo", "pago", "paga", "preço", "valor", "cobra", "pagar"],
+      resposta:
+        `💰 *A plataforma é gratuita?*\n\n`
+        + `*Sim!* Os cursos, materiais e certificados são oferecidos gratuitamente, `
+        + `sem qualquer custo para estudantes, educadores ou gestores das redes públicas atendidas.\n\n`
+        + `O Passaporte para a Aprendizagem é uma iniciativa do *UNICEF*, *Microsoft*, `
+        + `*Casa da Árvore Inovação Social* e *Projeto Territórios Conectados*.`,
+    },
+    {
+      keywords: ["sem internet", "sem conexão", "sem wifi", "sem wi-fi", "fazer offline", "estudar offline", "sem dados"],
+      resposta:
+        `📡 *Posso fazer cursos sem Internet?*\n\n`
+        + `*Apenas nas escolas que possuem o Hub Offline.*\n\n`
+        + `Nessas escolas, conecte-se à rede Wi-Fi *LearningPassport* `
+        + `(senha: learningpassport, em letras minúsculas) e abra o endereço informado pelo gestor local.\n\n`
+        + `Não há, no momento, opção de uso offline em casa ou fora da escola com Hub.`,
+    },
+    {
+      keywords: [
+        "como crio conta", "como criar conta", "como faço cadastro", "como me cadastrar",
+        "como me inscrever", "primeiro acesso", "novo cadastro", "criar conta nova",
+        "crio conta", "criar conta", "fazer cadastro", "fazer conta",
+        "crio minha conta", "criar minha conta"
+      ],
+      resposta:
+        `📝 *Como criar sua conta na plataforma:*\n\n`
+        + `1. Acesse: brasil.learningpassport.org\n`
+        + `2. Clique em *"Sign up now"* na tela de login\n`
+        + `3. Escolha um *nome de usuário* (sem espaços, sem acentos, sem caracteres especiais)\n`
+        + `   _Exemplo: ana.conceicao, joao_silva, maria-2025_\n`
+        + `4. Informe seu *e-mail* (será usado para verificação)\n`
+        + `5. Crie uma *senha* (digite duas vezes para confirmar)\n\n`
+        + `O *nome completo* (com acentos e sobrenome) será preenchido depois, no seu perfil.`,
+    },
+    {
+      keywords: [
+        "mudar e-mail", "mudar email", "trocar e-mail", "trocar email", "alterar e-mail",
+        "alterar email", "atualizar e-mail", "atualizar email", "novo e-mail",
+        "mudar meu e-mail", "mudar meu email", "trocar meu e-mail", "trocar meu email",
+        "alterar meu e-mail", "alterar meu email"
+      ],
+      resposta:
+        `📧 *Mudar o e-mail cadastrado:*\n\n`
+        + `Não é possível alterar o e-mail diretamente pelo seu perfil. `
+        + `A mudança depende de *intervenção administrativa*.\n\n`
+        + `Você pode:\n`
+        + `✔️ Solicitar ao *ponto focal* da sua escola, ou\n`
+        + `✔️ Abrir um ticket por este canal informando o e-mail novo.\n\n`
+        + `O retorno acontece em até *24 horas* em dias úteis pelo WhatsApp +55 19 99590-8410 `
+        + `ou pelo e-mail cadastrado.`,
+    },
+    {
+      keywords: [
+        "acompanhar aluno", "acompanhar alunos", "progresso aluno", "progresso alunos",
+        "ver progresso", "monitorar aluno", "acompanhar turma", "ver desempenho",
+        "acompanho aluno", "acompanho alunos", "acompanho meus aluno", "acompanho meus alunos",
+        "como acompanho", "ver meus alunos", "progresso dos alunos"
+      ],
+      resposta:
+        `📊 *Acompanhar o progresso dos alunos:*\n\n`
+        + `1. Acesse o painel administrativo (ícone de usuário → "Exibir como administrador")\n`
+        + `2. No menu lateral, clique em *Análise*\n`
+        + `3. Vá em *Por curso → Desempenho do Aluno*\n\n`
+        + `Você visualizará, para cada estudante:\n`
+        + `• Nome e contato\n`
+        + `• Percentual de conclusão\n`
+        + `• Lições e avaliações concluídas\n\n`
+        + `_Até 1.000 registros aparecem na tela. Acima disso, use "Baixar lista" para exportar em .xlsx._`,
+    },
+    {
+      keywords: [
+        "aluno completou", "aluno terminou", "aluno concluiu", "aluno acabou",
+        "verificar conclusão", "se aluno fez", "aluno fez o curso"
+      ],
+      resposta:
+        `✅ *Verificar se o aluno completou um curso:*\n\n`
+        + `Em *Análise → Por curso → Desempenho do Aluno*, o percentual de conclusão `
+        + `é exibido na coluna correspondente (100% indica curso concluído).\n\n`
+        + `Você também pode baixar o *Cartão de Relatório individual* do aluno, `
+        + `disponível na seção *Usuários*: clique sobre o nome do estudante e use `
+        + `o botão *"Baixar Cartão de Relatório"*.`,
+    },
+    {
+      keywords: [
+        "aplicativo", "app", "celular", "mobile", "instalar aplicativo",
+        "play store", "app store", "no celular", "no telefone"
+      ],
+      resposta:
+        `📱 *Sobre o uso no celular ou tablet:*\n\n`
+        + `A plataforma é acessível por *navegador em qualquer dispositivo* `
+        + `(celular, tablet ou computador), com layout responsivo ao tamanho da tela.\n\n`
+        + `Acesse normalmente por brasil.learningpassport.org no navegador do celular.\n\n`
+        + `Para *uso offline*, os Hubs locais permitem acesso pela rede Wi-Fi *LearningPassport* `
+        + `sem necessidade de Internet.`,
     },
   ],
+
+  // ─── SÍNTESE TÉCNICA ESTRUTURADA PARA A IA ──────────────────────────────
+  // Versão compacta e estruturada dos blocos KNOWLEDGE, otimizada para
+  // consumo pela IA (gpt-4o-mini). Complementa o CONTEXTO_GESTORES (prosa)
+  // com listas exatas de campos, colunas de relatório, formatos aceitos
+  // e demais elementos discretos da plataforma.
+
+  KNOWLEDGE_SYNTHESIS: `
+DADOS TÉCNICOS DA PLATAFORMA (referência exata para respostas):
+
+CRIAÇÃO DE CURSO (campos do formulário):
+[Obrigatórios]
+- Curso Nome
+- Idioma do curso (Português ou Inglês)
+- Matrícula do Aluno (uma destas: "Only admin can enroll learners" / "Self enroll" padrão / "Automatically enroll all learners")
+[Opcionais]
+- Curso Descrição
+- Miniatura De Curso
+- Offline Sync
+- Restringir a ordenação de lição
+- Habilitar certificado
+- Habilitar formulário de comentários
+
+FORMATOS DE ARQUIVO ACEITOS (upload):
+- Vídeo: mp4, avi
+- Áudio: mp3, wav
+- Documento: .pdf, .doc, .docx
+- Apresentação: .ppt, .pptx
+- Planilha: .xls, .xlsx
+- Livro digital: .epub
+- Página web: .html
+- SCORM: .zip (atenção: SCORM não registra acessos para certificação)
+
+COLUNAS DOS RELATÓRIOS (Análise):
+- Dashboard Geral: total de usuários, conclusões de curso, gráfico de crescimento, ranking "Cursos melhores por registros", lista "Cursos com nenhuma matrícula", tabela de categorias.
+- Por categoria: Nome do Curso, N.º de Lições, N.º de Avaliações, Curso Registro, Conclusão de Curso (%).
+- Por curso (Desempenho do Aluno): Nome, Contato (e-mail), % de Conclusão, Idioma, Lições Concluídas, Avaliações Concluídas. Até 1.000 registros aparecem na tela; acima disso, exporte com "Baixar lista".
+- Cartão individual de usuário: Pontuação Média de Avaliação, Cursos Concluídos, Registros do Curso, Grupos Registrados, Caminhos de Aprendizado.
+
+CATEGORIAS DE CURSOS (ativas na plataforma):
+Comece por aqui!, Cursos Temáticos até 10h, Cursos Temáticos 20h-60h, EDs - Preservação das Culturas e Línguas Indígenas, EDs - Memórias Centenárias, EDs - Cultura e Identidade, EDs - Ambiente e Sustentabilidade, Sobre o Learning Passport, Maués Conectado, Formação LP, Lab OPRINCE, Modelo de Curso/Treinamento, Tecnologias Digitais e Inovação.
+
+ROTEIROS POR MUNICÍPIO/ESTADO:
+Caucaia (CE), Alcântara (MA), Bequimão (MA), Betânia (PE), Cerro Corá (RN), Extremoz (RN), Lagoa de Velhos (RN), Pedro Avelino (RN), Touros (RN), Roraima (RR — SEED/CEFORR). Perfis transversais: Articuladores/Multiplicadores e Secretarias de Educação.
+
+MODELOS DE CERTIFICADO EXISTENTES:
+Territórios Conectados, Jornada Off-line, Educadores Conectados, Lab Criativo, CEFORR.
+Para criar novo modelo: Configurações > Modelos de Certificado > "+ Novo Modelo".
+
+CAMPOS DE PERFIL ADICIONAIS:
+Já configurados: Estado, Cidade, Função, Escola.
+Tipos disponíveis para criação: campo de texto, opção única (radio), múltipla escolha (checkbox).
+
+CONFIGURAÇÕES (subseções do menu lateral):
+- Geral: nome do portal, termos de privacidade, idiomas (Português padrão), acesso restrito.
+- Identidade Visual: logotipo, banner, texto de boas-vindas (até 100 caracteres), cor da marca, rodapé.
+- Campos de Perfil Adicionais.
+- Modelos de Certificado.
+
+TIPOS DE AVALIAÇÃO:
+- Avaliação sem classificação (sem nota formal; útil para autoavaliação).
+- Avaliação classificada (com pontuação atribuída a cada questão).
+
+GRUPOS DE USUÁRIOS:
+Acesso: seção Usuários > "Meus grupos". Botão "Novidades Grupo" para criar novo. Vinculáveis a roteiros e cursos. Subseção "Administradores globais" gerencia acesso administrativo total.
+
+ROTEIROS DE APRENDIZAGEM:
+Caminho: Conteúdo > Roteiros de Aprendizagem > "Novo Roteiro de Aprendizagem". Cada roteiro possui menu "···" com: Gerenciar usuários, Gerenciar administradores, Editar, Excluir.
+
+CATEGORIAS BNCC COMPUTAÇÃO (planos de aula temáticos):
+Ambiente e Sustentabilidade, Cultura e Identidade, Memórias Centenárias, Preservação de Culturas Indígenas.
+
+FERRAMENTAS PPP (Projeto Político Pedagógico):
+- PPP e Cultura Digital
+- Autoavaliação do PPP
+- O PPP que a Gente Constrói Junto
+
+TUTORIAL VISUAL DA PLATAFORMA:
+Quando o usuário pedir orientação visual passo a passo (com imagens de tela), encaminhe ao tutorial completo. O tutorial possui 4 abas: Sou Estudante, Sou Educador, Sou Gestor, Perguntas Frequentes.
+URL (se publicado): passaporteparaaprendizagem.casadaarvore.art.br/tutorial.html
+`,
 
   // ─── CONTEXTO ADICIONAL PARA A IA (perfil Gestor) ───────────────────────
   // Bloco anexado ao CONTEXTO_IA do config.js. Fornece à IA conhecimento
@@ -875,6 +1077,41 @@ Ferramentas para o Projeto Político Pedagógico (PPP): "PPP e Cultura Digital",
 Certificação: ao concluir os cursos, o participante recebe certificado digital
 com a carga horária correspondente, que pode ser utilizado para progressão
 funcional e como comprovação de formação continuada.
+
+DIAGNÓSTICO DE PROBLEMAS DE ACESSO À PLATAFORMA:
+Quando o usuário relatar que "não consegue acessar a plataforma" ou problemas
+similares, conduza o atendimento de forma acolhedora e estruturada, perguntando
+uma coisa de cada vez (não despeje todos os passos de uma só vez, isso confunde
+o usuário). Investigue, na ordem:
+
+1. Confirmar o endereço acessado: o correto é brasil.learningpassport.org
+   (em letras minúsculas, sem "www" e sem espaços).
+2. Identificar o tipo de erro encontrado:
+   - Tela em branco ou erro 502: orientar a aguardar 5 minutos.
+   - "Senha incorreta" ou "Usuário não encontrado": orientar a recuperação
+     de senha pelo link "Forgot your password?" na tela de login.
+   - Mensagem em inglês na tela de cadastro (Sign up): consultar a seção
+     "MENSAGENS DE ERRO MAIS COMUNS NA TELA DE CADASTRO".
+3. Sugerir testes simples antes de escalar:
+   - Tentar em janela anônima (privada) ou em outro navegador (Chrome, Firefox, Edge).
+   - Verificar a conexão com a Internet.
+   - Se for uso pelo Hub Offline, confirmar a rede Wi-Fi "LearningPassport"
+     e a senha "learningpassport".
+4. Se o problema persistir após essas verificações, oriente o usuário a marcar
+   a opção "Não, problema não resolvido" para abrir um ticket. Um ponto focal
+   entrará em contato em até 24 horas pelo WhatsApp ou e-mail cadastrado.
+
+Para o perfil Estudante, em dúvidas sobre cursos ou atividades, pergunte
+qual é o curso, em que etapa o estudante está e o que está acontecendo
+(curso não aparece, lição não abre, avaliação não envia, entre outros).
+Muitos casos têm solução simples (tentar em outro dispositivo, verificar
+conclusão de etapas anteriores, conferir se o curso foi publicado pelo educador).
+
+Para o perfil Educador, em dúvidas sobre emissão de certificado, lembre que:
+o certificado só é gerado após 100% de conclusão do curso pelo aluno; o
+educador pode acompanhar o progresso individual em "Análise > Por curso >
+Desempenho do Aluno"; em caso de divergência, abrir ticket para verificação
+administrativa.
 `,
 
 };
