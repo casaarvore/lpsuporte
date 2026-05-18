@@ -1,14 +1,12 @@
 // ═══════════════════════════════════════════════════════════════════════
 // MÓDULO: Google Sheets
-// Responsável por salvar tickets e ler dados de pontos focais
+// Responsável por salvar tickets, atendimentos e ler dados de pontos focais
 //
-// Correções v2.2:
-//   • Bug 1 corrigido: ticket.resumo → ticket.duvida (campo correto do bot.js)
-//   • Bug 2 corrigido: coluna E-mail adicionada ao cabeçalho e à gravação
-//   • Range atualizado de A:I para A:J (10 colunas com e-mail)
-//   • listarTickets atualizado para incluir campo email
-//   • Rate limiting adicionado: fila serializada + 600ms entre chamadas à API
-//     (limite gratuito Sheets API: 60 req/min — 600ms garante max 100/min com margem)
+// Versão 3.0:
+//   • Novo: salvarAtendimento e listarAtendimentos para a aba Atendimentos
+//   • Tickets agora têm 9 colunas (sem categoria, removida na v3.0 do bot)
+//   • Range de tickets: A:I (era A:J)
+//   • Rate limiting mantido: fila serializada + 600ms entre chamadas
 // ═══════════════════════════════════════════════════════════════════════
 
 const { google } = require("googleapis");
@@ -49,7 +47,7 @@ async function salvarTicket(ticket) {
       // Verifica se o cabeçalho existe; se não, cria
       const res = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: `${CONFIG.aba_tickets}!A1:J1`,
+        range: `${CONFIG.aba_tickets}!A1:I1`,
       });
 
       if (!res.data.values || res.data.values.length === 0) {
@@ -66,7 +64,6 @@ async function salvarTicket(ticket) {
               "Telefone",
               "E-mail",
               "Perfil",
-              "Categoria",
               "Dúvida",
               "Status",
             ]],
@@ -77,7 +74,7 @@ async function salvarTicket(ticket) {
       // Adiciona o ticket como nova linha
       await sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: `${CONFIG.aba_tickets}!A:J`,
+        range: `${CONFIG.aba_tickets}!A:I`,
         valueInputOption: "RAW",
         insertDataOption: "INSERT_ROWS",
         requestBody: {
@@ -89,7 +86,6 @@ async function salvarTicket(ticket) {
             ticket.telefone,
             ticket.email || "",
             ticket.perfil,
-            ticket.categoria,
             ticket.duvida,
             "Aberto",
           ]],
@@ -101,6 +97,110 @@ async function salvarTicket(ticket) {
     } catch (err) {
       console.error("[Sheets] Erro ao salvar ticket:", err.message);
       return false;
+    }
+  });
+}
+
+// ─── Salvar atendimento (todos os contatos, resolvidos ou não) ─────────────
+// Gera um registro na aba Atendimentos para fins estatísticos. Telefone é
+// guardado, mas não há nome (consideramos "anônimo" em relação à identificação
+// nominal). Inclui e-mail e município/estado quando disponíveis.
+async function salvarAtendimento(atendimento) {
+  return enfileirar(async () => {
+    try {
+      const auth = await getAuth();
+      const sheets = google.sheets({ version: "v4", auth });
+      const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+      const res = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${CONFIG.aba_atendimentos}!A1:J1`,
+      });
+
+      if (!res.data.values || res.data.values.length === 0) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: `${CONFIG.aba_atendimentos}!A1`,
+          valueInputOption: "RAW",
+          requestBody: {
+            values: [[
+              "Data",
+              "Hora",
+              "Telefone",
+              "Perfil",
+              "Dúvida",
+              "Resposta",
+              "Origem da Resposta",
+              "E-mail",
+              "Município/Estado",
+              "Virou Ticket?",
+            ]],
+          },
+        });
+      }
+
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: `${CONFIG.aba_atendimentos}!A:J`,
+        valueInputOption: "RAW",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: {
+          values: [[
+            atendimento.data,
+            atendimento.hora,
+            atendimento.telefone,
+            atendimento.perfil || "",
+            atendimento.duvida || "",
+            atendimento.resposta || "",
+            atendimento.origem || "",
+            atendimento.email || "",
+            atendimento.municipio_estado || "",
+            atendimento.virou_ticket || "Não",
+          ]],
+        },
+      });
+
+      console.log(`[Sheets] Atendimento de ${atendimento.telefone} registrado.`);
+      return true;
+    } catch (err) {
+      console.error("[Sheets] Erro ao salvar atendimento:", err.message);
+      return false;
+    }
+  });
+}
+
+// ─── Listar atendimentos (para painel ou exportação) ──────────────────────
+async function listarAtendimentos() {
+  return enfileirar(async () => {
+    try {
+      const auth = await getAuth();
+      const sheets = google.sheets({ version: "v4", auth });
+      const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+      const res = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${CONFIG.aba_atendimentos}!A:J`,
+      });
+
+      const rows = res.data.values || [];
+      if (rows.length <= 1) return [];
+
+      const [, ...data] = rows;
+      return data.map((row) => ({
+        data:             row[0] || "",
+        hora:             row[1] || "",
+        telefone:         row[2] || "",
+        perfil:           row[3] || "",
+        duvida:           row[4] || "",
+        resposta:         row[5] || "",
+        origem:           row[6] || "",
+        email:            row[7] || "",
+        municipio_estado: row[8] || "",
+        virou_ticket:     row[9] || "Não",
+      })).reverse();
+    } catch (err) {
+      console.error("[Sheets] Erro ao listar atendimentos:", err.message);
+      return [];
     }
   });
 }
@@ -196,7 +296,7 @@ async function listarTickets() {
 
       const res = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: `${CONFIG.aba_tickets}!A:J`,
+        range: `${CONFIG.aba_tickets}!A:I`,
       });
 
       const rows = res.data.values || [];
@@ -211,9 +311,8 @@ async function listarTickets() {
         telefone:  row[4] || "",
         email:     row[5] || "",
         perfil:    row[6] || "",
-        categoria: row[7] || "",
-        duvida:    row[8] || "",
-        status:    row[9] || "Aberto",
+        duvida:    row[7] || "",
+        status:    row[8] || "Aberto",
       })).reverse();
     } catch (err) {
       console.error("[Sheets] Erro ao listar tickets:", err.message);
@@ -222,4 +321,11 @@ async function listarTickets() {
   });
 }
 
-module.exports = { salvarTicket, buscarPontosFocais, cadastrarPontoFocal, listarTickets };
+module.exports = {
+  salvarTicket,
+  buscarPontosFocais,
+  cadastrarPontoFocal,
+  listarTickets,
+  salvarAtendimento,
+  listarAtendimentos,
+};

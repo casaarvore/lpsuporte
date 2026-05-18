@@ -1,60 +1,34 @@
 // ═══════════════════════════════════════════════════════════════════════
 // MÓDULO: Bot — Gerenciamento de sessões e fluxo de conversa
-// Versão: 2.2 — usa o número detectado pelo Z-API
+// Versão: 3.0 — coleta mínima inicial
 //
-// Mudanças em relação à versão 2.1:
-//   • boas_vindas pede nome completo em uma única pergunta
-//   • Novo estado CONFIRMAR_TELEFONE: apresenta o número do WhatsApp
-//     detectado pelo Z-API e pede confirmação ao usuário
-//   • AGUARDANDO_TELEFONE permanece como caminho alternativo (quando o
-//     usuário opta por informar outro número)
-//   • Função utilitária formatarTelefone para apresentação ao usuário
-//   • Fluxo: saudação → nome completo → confirmar telefone → email → perfil
+// Mudanças em relação à versão 2.2:
+//   • Coleta mínima: nome (aceita primeiro nome) e perfil, antes da dúvida
+//   • Telefone vem do Z-API automaticamente (sem confirmação)
+//   • E-mail é solicitado apenas quando o usuário escolhe abrir um ticket
+//   • Categoria foi eliminada: a IA recebe perfil + dúvida em linguagem livre
+//   • Todo atendimento (FAQ, IA, ticket) é registrado na aba Atendimentos
+//   • Fluxo: saudação → nome → perfil → dúvida → FAQ/IA → (se ticket) e-mail
 // ═══════════════════════════════════════════════════════════════════════
 
 const { MENSAGENS, PERFIS, CONFIG } = require("./config");
-const { gerarResposta } = require("./claude");
-const { salvarTicket } = require("./sheets");
+const { gerarResposta, verificarFAQ } = require("./claude");
+const { salvarTicket, salvarAtendimento } = require("./sheets");
 
 // ─── Armazenamento de sessões em memória ──────────────────────────────────
 const sessoes = new Map();
 
 // ─── Estados possíveis da conversa ────────────────────────────────────────
 const ESTADOS = {
-  AGUARDANDO_INICIO:     "aguardando_inicio",     // qualquer msg → mostra boas-vindas e pede nome
-  AGUARDANDO_NOME:       "aguardando_nome",
-  CONFIRMAR_TELEFONE:    "confirmar_telefone",    // exibe número Z-API e pede confirmação (1/2)
-  AGUARDANDO_TELEFONE:   "aguardando_telefone",   // ativado se o usuário escolheu informar outro número
-  AGUARDANDO_EMAIL:      "aguardando_email",
-  AGUARDANDO_PERFIL:     "aguardando_perfil",
-  AGUARDANDO_CATEGORIA:  "aguardando_categoria",
-  AGUARDANDO_DUVIDA:     "aguardando_duvida",
-  AGUARDANDO_AVALIACAO:  "aguardando_avaliacao",   // pós resposta automática
-  AGUARDANDO_POS_TICKET: "aguardando_pos_ticket",  // pós abertura de ticket
-  ENCERRADO:             "encerrado",
+  AGUARDANDO_INICIO:       "aguardando_inicio",       // qualquer msg → boas-vindas + pede nome
+  AGUARDANDO_NOME:         "aguardando_nome",         // aceita 1 ou + palavras
+  AGUARDANDO_PERFIL:       "aguardando_perfil",       // Estudante/Educador/Gestor
+  AGUARDANDO_DUVIDA:       "aguardando_duvida",       // pergunta aberta
+  AGUARDANDO_AVALIACAO:    "aguardando_avaliacao",    // pós resposta (FAQ ou IA)
+  AGUARDANDO_EMAIL_TICKET: "aguardando_email_ticket", // pede e-mail antes de gravar ticket
+  AGUARDANDO_POS_TICKET:   "aguardando_pos_ticket",   // pós abertura de ticket
+  ENCERRADO:               "encerrado",
 };
-
-// ─── Formatador de telefone para exibição ao usuário ──────────────────────
-// O Z-API entrega o telefone em formato internacional ("5519995908410").
-// Esta função converte para o formato brasileiro: "(19) 99590-8410".
-// Suporta celular (13 dígitos) e fixo (12 dígitos). Em caso de formato
-// inesperado, devolve o número original sem quebrar o fluxo.
-function formatarTelefone(telefone) {
-  const num = String(telefone || "").replace(/\D/g, "");
-  if (num.length === 13 && num.startsWith("55")) {
-    const ddd    = num.slice(2, 4);
-    const parte1 = num.slice(4, 9);  // 9XXXX (celular com nono dígito)
-    const parte2 = num.slice(9);     // XXXX
-    return `(${ddd}) ${parte1}-${parte2}`;
-  }
-  if (num.length === 12 && num.startsWith("55")) {
-    const ddd    = num.slice(2, 4);
-    const parte1 = num.slice(4, 8);  // XXXX (fixo)
-    const parte2 = num.slice(8);     // XXXX
-    return `(${ddd}) ${parte1}-${parte2}`;
-  }
-  return telefone;
-}
 
 // ─── Gerador de ID de ticket ───────────────────────────────────────────────
 function gerarIdTicket() {
@@ -70,17 +44,17 @@ function gerarIdTicket() {
 // ─── Criar nova sessão ─────────────────────────────────────────────────────
 function criarSessao(telefone) {
   const sessao = {
-    telefone,
+    telefone,                       // número do Z-API (no formato internacional)
     estado: ESTADOS.AGUARDANDO_INICIO,
-    nome: null,
-    telefone_contato: null,
-    email: null,
+    nome: null,                     // nome completo digitado (pode ser só o primeiro)
+    primeiro_nome: null,            // primeira palavra do nome
+    email: null,                    // coletado apenas no momento do ticket
     perfil_id: null,
-    perfil_nome: null,
-    categoria_id: null,
-    categoria_nome: null,
-    categoria_tipo: null,   // "auto" | "ticket" | "voltar"
-    historico: [],
+    perfil_nome: null,              // ex: "🎓 Estudante"
+    duvida_atual: null,             // última dúvida descrita pelo usuário
+    resposta_atual: null,           // última resposta dada (FAQ ou IA)
+    origem_resposta: null,          // "FAQ" | "IA" | "Erro"
+    historico: [],                  // histórico para a IA
     criada_em: Date.now(),
     ultima_atividade: Date.now(),
     contagem_mensagens: 0,
@@ -104,19 +78,31 @@ function obterSessao(telefone) {
   return sessao;
 }
 
-// ─── Montar menu de categorias ─────────────────────────────────────────────
-function montarMenuCategorias(perfil_id) {
-  const perfil = PERFIS[perfil_id];
-  if (!perfil) return "";
-  let menu = "";
-  for (const [num, cat] of Object.entries(perfil.categorias)) {
-    menu += `${num}️⃣ ${cat.label}\n`;
+// ─── Registrar atendimento anônimo (aba Atendimentos) ─────────────────────
+// Chamado sempre que uma dúvida recebe resposta automatica (FAQ ou IA),
+// independentemente de virar ou não ticket.
+async function registrarAtendimento(sessao, virou_ticket) {
+  try {
+    const agora = new Date();
+    await salvarAtendimento({
+      data:             agora.toLocaleDateString("pt-BR"),
+      hora:             agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      telefone:         sessao.telefone,
+      perfil:           sessao.perfil_nome || "",
+      duvida:           (sessao.duvida_atual || "").slice(0, 500),
+      resposta:         (sessao.resposta_atual || "").slice(0, 500),
+      origem:           sessao.origem_resposta || "",
+      email:            sessao.email || "",
+      municipio_estado: "",                       // reservado para futura integração
+      virou_ticket:     virou_ticket ? "Sim" : "Não",
+    });
+  } catch (err) {
+    console.error("[Atendimento] Falha ao registrar:", err.message);
   }
-  return menu;
 }
 
-// ─── Abrir ticket direto (caminho b) ──────────────────────────────────────
-async function abrirTicket(sessao, telefone, duvida) {
+// ─── Abrir ticket ──────────────────────────────────────────────────────────
+async function abrirTicket(sessao) {
   const ticketId = gerarIdTicket();
   const agora = new Date();
 
@@ -124,15 +110,16 @@ async function abrirTicket(sessao, telefone, duvida) {
     id:        ticketId,
     data:      agora.toLocaleDateString("pt-BR"),
     hora:      agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-    nome:      sessao.nome,
-    telefone:  sessao.telefone_contato || telefone,
+    nome:      sessao.nome || "",
+    telefone:  sessao.telefone,
     email:     sessao.email || "",
-    perfil:    sessao.perfil_nome,
-    categoria: sessao.categoria_nome,
-    duvida:    duvida.slice(0, 200),
+    perfil:    sessao.perfil_nome || "",
+    duvida:    (sessao.duvida_atual || "").slice(0, 500),
   };
 
   await salvarTicket(ticket);
+  // Registra o atendimento marcado como "virou ticket"
+  await registrarAtendimento(sessao, true);
   return ticketId;
 }
 
@@ -150,118 +137,62 @@ async function processarMensagem(telefone, textoRecebido) {
     resposta = MENSAGENS.boas_vindas;
   }
 
-  // ── ESTADO: aguardando nome completo ──────────────────────────────────
+  // ── ESTADO: aguardando nome (aceita primeiro nome ou completo) ────────
   else if (sessao.estado === ESTADOS.AGUARDANDO_NOME) {
-    const partes = texto.trim().split(/\s+/);
-    if (partes.length < 2) {
-      // Rejeita se não tiver ao menos nome e sobrenome
-      resposta = `Por favor, informe seu *nome completo* (nome e sobrenome).\n\n_(Ex: Ana Beatriz da Conceição)_`;
+    const partes = texto.trim().split(/\s+/).filter(Boolean);
+    if (partes.length === 0) {
+      resposta = `Por favor, digite seu *nome* para começarmos.`;
     } else {
-      sessao.nome   = texto.trim();
-      const primeiroNome = partes[0];
-      // Apresenta o número detectado pelo Z-API e pede confirmação
-      sessao.estado = ESTADOS.CONFIRMAR_TELEFONE;
-      const numeroFormatado = formatarTelefone(telefone);
-      resposta = MENSAGENS.confirmar_telefone(primeiroNome, numeroFormatado);
+      sessao.nome = texto.trim();
+      sessao.primeiro_nome = partes[0];
+      sessao.estado = ESTADOS.AGUARDANDO_PERFIL;
+      resposta = MENSAGENS.selecionar_perfil(sessao.primeiro_nome);
     }
   }
 
-  // ── ESTADO: confirmar telefone detectado pelo Z-API (1=sim, 2=outro) ──
-  else if (sessao.estado === ESTADOS.CONFIRMAR_TELEFONE) {
-    if (texto === "1") {
-      // Usuário confirma o número detectado: usa o do Z-API
-      sessao.telefone_contato = telefone;
-      sessao.estado = ESTADOS.AGUARDANDO_EMAIL;
-      resposta = MENSAGENS.solicitar_email();
-    } else if (texto === "2") {
-      // Usuário quer informar outro número: vai para o estado clássico
-      sessao.estado = ESTADOS.AGUARDANDO_TELEFONE;
-      resposta = MENSAGENS.solicitar_telefone;
-    } else {
-      // Reapresenta a pergunta se a resposta não for 1 nem 2
-      const primeiroNome = (sessao.nome || "").split(/\s+/)[0];
-      const numeroFormatado = formatarTelefone(telefone);
-      resposta = MENSAGENS.nao_entendido + "\n\n"
-               + MENSAGENS.confirmar_telefone(primeiroNome, numeroFormatado);
-    }
-  }
-
-  // ── ESTADO: aguardando telefone de contato (caminho alternativo) ──────
-  // Ativado quando o usuário escolheu "informar outro número" no estado anterior.
-  else if (sessao.estado === ESTADOS.AGUARDANDO_TELEFONE) {
-    sessao.telefone_contato = texto;
-    sessao.estado = ESTADOS.AGUARDANDO_EMAIL;
-    resposta = MENSAGENS.solicitar_email();
-  }
-
-  // ── ESTADO: aguardando e-mail ─────────────────────────────────────────
-  else if (sessao.estado === ESTADOS.AGUARDANDO_EMAIL) {
-    sessao.email  = texto.toLowerCase() === "pular" ? "" : texto;
-    sessao.estado = ESTADOS.AGUARDANDO_PERFIL;
-    resposta = MENSAGENS.selecionar_perfil();
-  }
-
-  // ── ESTADO: aguardando perfil ─────────────────────────────────────────
+  // ── ESTADO: aguardando perfil (1 / 2 / 3) ─────────────────────────────
   else if (sessao.estado === ESTADOS.AGUARDANDO_PERFIL) {
     if (!PERFIS[texto]) {
-      resposta = MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.selecionar_perfil();
+      resposta = MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.selecionar_perfil(sessao.primeiro_nome);
     } else {
       sessao.perfil_id   = texto;
       sessao.perfil_nome = `${PERFIS[texto].emoji} ${PERFIS[texto].nome}`;
-      sessao.estado      = ESTADOS.AGUARDANDO_CATEGORIA;
-      resposta = MENSAGENS.selecionar_categoria(sessao.perfil_nome)
-               + montarMenuCategorias(sessao.perfil_id);
+      sessao.estado      = ESTADOS.AGUARDANDO_DUVIDA;
+      resposta = MENSAGENS.digitar_duvida(sessao.primeiro_nome);
     }
   }
 
-  // ── ESTADO: aguardando categoria ──────────────────────────────────────
-  else if (sessao.estado === ESTADOS.AGUARDANDO_CATEGORIA) {
-    const categorias = PERFIS[sessao.perfil_id]?.categorias || {};
-    const cat        = categorias[texto];
-
-    if (!cat) {
-      resposta = MENSAGENS.nao_entendido + "\n\n"
-               + MENSAGENS.selecionar_categoria(sessao.perfil_nome)
-               + montarMenuCategorias(sessao.perfil_id);
-
-    } else if (cat.tipo === "voltar") {
-      // Volta ao menu de perfil
-      sessao.estado = ESTADOS.AGUARDANDO_PERFIL;
-      resposta = MENSAGENS.selecionar_perfil();
-
-    } else {
-      sessao.categoria_id   = texto;
-      sessao.categoria_nome = cat.label;
-      sessao.categoria_tipo = cat.tipo;
-      sessao.estado         = ESTADOS.AGUARDANDO_DUVIDA;
-      resposta = MENSAGENS.digitar_duvida;
-    }
-  }
-
-  // ── ESTADO: aguardando dúvida ─────────────────────────────────────────
+  // ── ESTADO: aguardando dúvida (pergunta aberta) ───────────────────────
   else if (sessao.estado === ESTADOS.AGUARDANDO_DUVIDA) {
     const duvida = texto;
+    sessao.duvida_atual = duvida;
 
-    // ── CAMINHO (b): abre ticket direto ──────────────────────────────
-    if (sessao.categoria_tipo === "ticket") {
-      const ticketId = await abrirTicket(sessao, telefone, duvida);
-      sessao.estado  = ESTADOS.AGUARDANDO_POS_TICKET;
-      resposta = MENSAGENS.ticket_aberto(ticketId);
-
-    // ── CAMINHO (a): resposta automática via FAQ / IA ─────────────────
-    } else {
+    // Primeiro tenta FAQ (sem custo de API)
+    const respostaFAQ = verificarFAQ(duvida);
+    if (respostaFAQ) {
+      sessao.resposta_atual = respostaFAQ;
+      sessao.origem_resposta = "FAQ";
       sessao.historico.push({ de: "usuario", texto: duvida });
-
+      sessao.historico.push({ de: "bot", texto: respostaFAQ });
+      sessao.estado = ESTADOS.AGUARDANDO_AVALIACAO;
+      resposta = respostaFAQ + "\n\n──────────\n" + MENSAGENS.pos_resposta_automatica;
+    } else {
+      // FAQ não casou: chama a IA com perfil + dúvida (sem categoria)
+      sessao.historico.push({ de: "usuario", texto: duvida });
       const ia = await gerarResposta({
         perfil:        sessao.perfil_nome,
-        categoria:     sessao.categoria_nome,
+        categoria:     "Dúvida aberta",
         historico:     sessao.historico.slice(0, -1),
         mensagemAtual: duvida,
       });
 
       if (!ia) {
+        sessao.resposta_atual = MENSAGENS.erro_tecnico;
+        sessao.origem_resposta = "Erro";
         resposta = MENSAGENS.erro_tecnico;
       } else {
+        sessao.resposta_atual = ia;
+        sessao.origem_resposta = "IA";
         sessao.historico.push({ de: "bot", texto: ia });
         sessao.estado = ESTADOS.AGUARDANDO_AVALIACAO;
         resposta = ia + "\n\n──────────\n" + MENSAGENS.pos_resposta_automatica;
@@ -269,62 +200,54 @@ async function processarMensagem(telefone, textoRecebido) {
     }
   }
 
-  // ── ESTADO: aguardando avaliação da resposta automática (caminho a) ──
+  // ── ESTADO: aguardando avaliação da resposta ──────────────────────────
   else if (sessao.estado === ESTADOS.AGUARDANDO_AVALIACAO) {
 
     if (texto === "1") {
-      // Encerrar — resolvido
+      // Resolvido — registra atendimento (sem ticket) e encerra
+      await registrarAtendimento(sessao, false);
       sessao.estado = ESTADOS.ENCERRADO;
-      resposta = MENSAGENS.encerramento(sessao.nome);
+      resposta = MENSAGENS.encerramento(sessao.primeiro_nome);
       sessoes.delete(telefone);
 
     } else if (texto === "2") {
-      // Abrir ticket
-      const ultimaDuvida = [...sessao.historico]
-        .reverse()
-        .find((m) => m.de === "usuario")?.texto || "Sem descrição";
-
-      const ticketId = await abrirTicket(sessao, telefone, ultimaDuvida);
-      sessao.estado  = ESTADOS.AGUARDANDO_POS_TICKET;
-      resposta = MENSAGENS.ticket_aberto(ticketId);
+      // Outra pergunta — registra atendimento e volta à dúvida aberta
+      await registrarAtendimento(sessao, false);
+      sessao.estado = ESTADOS.AGUARDANDO_DUVIDA;
+      sessao.historico = []; // limpa contexto para nova pergunta independente
+      resposta = MENSAGENS.digitar_duvida(sessao.primeiro_nome);
 
     } else if (texto === "3") {
-      // Voltar ao menu de categorias
-      sessao.estado = ESTADOS.AGUARDANDO_CATEGORIA;
-      resposta = MENSAGENS.selecionar_categoria(sessao.perfil_nome)
-               + montarMenuCategorias(sessao.perfil_id);
+      // Pedir e-mail antes de abrir o ticket
+      sessao.estado = ESTADOS.AGUARDANDO_EMAIL_TICKET;
+      resposta = MENSAGENS.solicitar_email_ticket;
 
     } else {
       resposta = MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.pos_resposta_automatica;
     }
   }
 
-  // ── ESTADO: aguardando escolha pós-ticket (caminho b e "não resolvido") ─
+  // ── ESTADO: aguardando e-mail para o ticket ───────────────────────────
+  else if (sessao.estado === ESTADOS.AGUARDANDO_EMAIL_TICKET) {
+    sessao.email = texto.toLowerCase() === "pular" ? "" : texto;
+    const ticketId = await abrirTicket(sessao);
+    sessao.estado = ESTADOS.AGUARDANDO_POS_TICKET;
+    resposta = MENSAGENS.ticket_aberto(ticketId);
+  }
+
+  // ── ESTADO: aguardando escolha pós-ticket ─────────────────────────────
   else if (sessao.estado === ESTADOS.AGUARDANDO_POS_TICKET) {
 
     if (texto === "1") {
-      // Retornar ao início — reinicia sessão mantendo dados do usuário
-      sessao.estado         = ESTADOS.AGUARDANDO_PERFIL;
-      sessao.categoria_id   = null;
-      sessao.categoria_nome = null;
-      sessao.categoria_tipo = null;
-      sessao.historico      = [];
-      resposta = MENSAGENS.selecionar_perfil();
+      // Fazer outra pergunta — volta à dúvida aberta, mantém perfil
+      sessao.estado = ESTADOS.AGUARDANDO_DUVIDA;
+      sessao.historico = [];
+      resposta = MENSAGENS.digitar_duvida(sessao.primeiro_nome);
 
     } else if (texto === "2") {
-      // Abrir novo chamado — volta à seleção de categoria
-      sessao.estado         = ESTADOS.AGUARDANDO_CATEGORIA;
-      sessao.categoria_id   = null;
-      sessao.categoria_nome = null;
-      sessao.categoria_tipo = null;
-      sessao.historico      = [];
-      resposta = MENSAGENS.selecionar_categoria(sessao.perfil_nome)
-               + montarMenuCategorias(sessao.perfil_id);
-
-    } else if (texto === "3") {
       // Encerrar
       sessao.estado = ESTADOS.ENCERRADO;
-      resposta = MENSAGENS.encerramento(sessao.nome);
+      resposta = MENSAGENS.encerramento(sessao.primeiro_nome);
       sessoes.delete(telefone);
 
     } else {
@@ -336,9 +259,8 @@ async function processarMensagem(telefone, textoRecebido) {
   else {
     sessoes.delete(telefone);
     criarSessao(telefone);
-    resposta = MENSAGENS.boas_vindas;
-    // Avança para AGUARDANDO_NOME já que boas_vindas foi enviada
     sessoes.get(telefone).estado = ESTADOS.AGUARDANDO_NOME;
+    resposta = MENSAGENS.boas_vindas;
   }
 
   return resposta || MENSAGENS.erro_tecnico;

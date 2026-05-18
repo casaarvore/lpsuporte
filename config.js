@@ -4,10 +4,13 @@
 // Este arquivo pode ser editado pela equipe sem conhecimento de programação.
 // Após editar, salve o arquivo no GitHub — o Render atualizará em ~1 minuto.
 //
-// VERSÃO: 2.1 — indexa a base de conhecimento knowledge.js
-//   • Importa REFERENCIAS, KNOWLEDGE, FAQ_GESTORES e CONTEXTO_GESTORES
-//   • FAQ_GESTORES é concatenada ao FAQ principal (spread no final do array)
-//   • CONTEXTO_GESTORES é anexado ao CONTEXTO_IA usado pelo prompt da IA
+// VERSÃO: 3.0 — fluxo de coleta mínima inicial
+//   • Boas-vindas pede o nome (aceita primeiro nome ou completo)
+//   • Telefone vem do Z-API, sem confirmação prévia
+//   • E-mail só é solicitado no momento de abrir ticket
+//   • Categoria foi eliminada; a IA recebe perfil + dúvida aberta
+//   • Indexa a base de conhecimento knowledge.js (REFERENCIAS, KNOWLEDGE,
+//     FAQ_GESTORES, CONTEXTO_GESTORES, KNOWLEDGE_SYNTHESIS)
 // ═══════════════════════════════════════════════════════════════════════════
 
 const knowledge = require("./knowledge");
@@ -20,69 +23,56 @@ module.exports = {
     boas_vindas:
       `Olá! 👋 Bem-vindo ao suporte do *Passaporte para Aprendizagem (Learning Passport)* 🌍\n\n`
       + `Sou o assistente virtual do projeto Territórios Conectados.\n\n`
-      + `Para começarmos, informe seu *nome completo* (nome e sobrenome).\n`
-      + `_(Ex: Ana Beatriz da Conceição)_`,
+      + `Para começarmos, qual é o seu *nome*?\n`
+      + `_(Pode digitar o nome completo ou apenas o primeiro nome.)_`,
 
-    // Exibido após o nome — pede confirmação do número detectado pelo Z-API
-    confirmar_telefone: (nome, numeroFormatado) =>
-      `Obrigado, *${nome}*! 📞\n\n`
-      + `Identifiquei que você está falando pelo número *${numeroFormatado}*.\n\n`
-      + `Esse é o melhor número para contato?\n\n`
-      + `1️⃣ ✅ Sim, pode usar este número\n`
-      + `2️⃣ ✏️ Não, quero informar outro número`,
-
-    // Exibido apenas se o usuário escolher "informar outro número"
-    solicitar_telefone:
-      `Tudo bem! Por favor, digite o *número de telefone* com DDD que prefere informar.\n`
-      + `_(Ex: 11 91234-5678)_`,
-
-    solicitar_email: () =>
-      `Ótimo! Agora, qual é o seu *e-mail*?\n\n`
-      + `_(Digite "pular" se não tiver e-mail)_`,
-
-    selecionar_perfil: () =>
-      `Perfeito! Para te ajudar melhor, selecione o seu perfil:\n\n`
+    selecionar_perfil: (primeiroNome) =>
+      `Prazer em te atender, *${primeiroNome}*! 🤝\n\n`
+      + `📖 Aproveite para conhecer nossa página, com *tutoriais, roteiros de aprendizagem, perguntas frequentes* e *guias de acesso à plataforma*:\n`
+      + `🔗 https://passaporteparaaprendizagem.casadaarvore.art.br\n\n`
+      + `Para te ajudar melhor por aqui, qual é o seu perfil?\n\n`
       + `1️⃣ Sou *Estudante*\n`
       + `2️⃣ Sou *Educador*\n`
-      + `3️⃣ Sou *Gestor* / Ponto Focal\n`
-      + `4️⃣ 🔙 Voltar ao início`,
+      + `3️⃣ Sou *Gestor* / Ponto Focal`,
 
-    selecionar_categoria: (perfil) =>
-      `Entendido! Você é *${perfil}*.\n\nSobre o que precisa de ajuda?\n\n`,
+    digitar_duvida: (primeiroNome) =>
+      `Perfeito, *${primeiroNome}*! 💬\n\n`
+      + `Em que posso te ajudar hoje? Descreva sua dúvida com o máximo de detalhes possível.`,
 
-    digitar_duvida:
-      `Perfeito! Descreva sua dúvida com o máximo de detalhes possível. 💬`,
-
-    // Exibido após resposta automática (FAQ / IA) — caminho (a)
+    // Exibido após resposta automática (FAQ ou IA)
     pos_resposta_automatica:
-      `Isso resolveu sua dúvida?\n\n`
-      + `1️⃣ ✅ Sim — problema resolvido!\n`
-      + `2️⃣ ❌ Não — abrir ticket para atendimento humano\n`
-      + `3️⃣ 🔙 Voltar ao menu anterior`,
+      `E aí, essa resposta te ajudou? 😊\n\n`
+      + `1️⃣ ✅ Sim, está resolvido!\n`
+      + `2️⃣ 💬 Quero fazer mais uma pergunta\n`
+      + `3️⃣ 📋 Não — prefiro abrir um ticket (atendimento humano)`,
 
-    // Exibido após ticket registrado — caminho (b)
+    // Solicita o e-mail apenas no momento de abrir o ticket
+    solicitar_email_ticket:
+      `Para que o ponto focal possa retornar pelo e-mail (além deste WhatsApp), `
+      + `por favor informe seu *e-mail*.\n\n`
+      + `_(Digite "pular" se preferir não informar.)_`,
+
+    // Exibido após ticket registrado
     ticket_aberto: (id) =>
       `✅ Ticket *${id}* registrado com sucesso!\n\n`
       + `🕒 *Prazo de retorno:* até *24 horas* em dias úteis.\n`
       + `_(Em feriados ou finais de semana, o atendimento pode ocorrer no próximo dia útil.)_\n\n`
       + `📞 *Como você será contatado:* o ponto focal responderá pelo *próprio WhatsApp* `
-      + `usado nesta conversa ou pelo *e-mail cadastrado na plataforma*.\n\n`
+      + `(este número, +55 19 99590-8410) ou pelo *e-mail* informado.\n\n`
       + `📌 Guarde o número *${id}* para acompanhar sua solicitação. `
       + `Caso precise complementar a dúvida, basta responder mencionando esse número.\n\n`
       + `O que deseja fazer agora?\n\n`
-      + `1️⃣ 🔄 Retornar ao início\n`
-      + `2️⃣ 📋 Abrir novo chamado\n`
-      + `3️⃣ 👋 Encerrar`,
+      + `1️⃣ 💬 Fazer outra pergunta\n`
+      + `2️⃣ 👋 Encerrar`,
 
     // Reenvia as opções pós-ticket se o usuário digitar algo inválido
     ticket_aberto_opcoes: () =>
       `O que deseja fazer agora?\n\n`
-      + `1️⃣ 🔄 Retornar ao início\n`
-      + `2️⃣ 📋 Abrir novo chamado\n`
-      + `3️⃣ 👋 Encerrar`,
+      + `1️⃣ 💬 Fazer outra pergunta\n`
+      + `2️⃣ 👋 Encerrar`,
 
-    encerramento: (nome) =>
-      `Ótimo! Fico feliz em ter ajudado, *${nome}*! 🎉\n\n`
+    encerramento: (primeiroNome) =>
+      `Ótimo! Fico feliz em ter ajudado, *${primeiroNome}*! 🎉\n\n`
       + `Se precisar de algo, é só chamar. Tenha um ótimo dia!`,
 
     nao_entendido:
@@ -90,51 +80,19 @@ module.exports = {
 
     erro_tecnico:
       `Ocorreu um erro interno. Por favor, tente novamente em alguns instantes `
-      + `ou entre em contato com o suporte pelo e-mail indicado no site.`,
+      + `ou entre em contato com o suporte pelo WhatsApp +55 19 99590-8410.`,
   },
 
   // ─── PERFIS DE USUÁRIO ───────────────────────────────────────────────────
-  // tipo "auto"   → resposta via FAQ / IA (caminho a)
-  // tipo "ticket" → abre chamado direto (caminho b)
-  // tipo "voltar" → volta ao menu de perfil
+  // A partir da versão 3.0 do bot, as categorias foram eliminadas: o usuário
+  // descreve a dúvida diretamente após informar o perfil. A IA e a FAQ
+  // recebem perfil + dúvida e respondem; o ticket é aberto apenas se a
+  // resposta automática não resolver.
 
   PERFIS: {
-    "1": {
-      nome: "Estudante",
-      emoji: "🎓",
-      categorias: {
-        "1": { label: "Problemas com login ou senha",          tipo: "auto"   },
-        "2": { label: "Emitir certificado",                    tipo: "auto"   },
-        "3": { label: "Não consigo acessar a plataforma",      tipo: "auto"   },
-        "4": { label: "Dúvida sobre um curso ou atividade",    tipo: "auto"   },
-        "5": { label: "Outro assunto",                         tipo: "auto"   },
-        "6": { label: "🔙 Voltar ao menu anterior",            tipo: "voltar" },
-      },
-    },
-    "2": {
-      nome: "Educador",
-      emoji: "📚",
-      categorias: {
-        "1": { label: "Problemas com login ou senha",          tipo: "auto"   },
-        "2": { label: "Criar ou publicar um curso",            tipo: "auto"   },
-        "3": { label: "Não consigo acessar a plataforma",      tipo: "auto"   },
-        "4": { label: "Emitir certificado",                    tipo: "auto"   },
-        "5": { label: "Outro assunto",                         tipo: "auto"   },
-        "6": { label: "🔙 Voltar ao menu anterior",            tipo: "voltar" },
-      },
-    },
-    "3": {
-      nome: "Gestor / Ponto Focal",
-      emoji: "🏫",
-      categorias: {
-        "1": { label: "Problemas com login ou senha",          tipo: "auto"   },
-        "2": { label: "Cadastrar usuários ou escolas",         tipo: "auto"   },
-        "3": { label: "Análise e estatísticas da plataforma",  tipo: "auto"   },
-        "4": { label: "Outro assunto",                         tipo: "auto"   },
-        "5": { label: "🔙 Voltar ao menu anterior",            tipo: "voltar" },
-      },
-    },
-    // Opção 4 no menu de perfil = voltar ao início (tratada no bot.js)
+    "1": { nome: "Estudante",             emoji: "🎓" },
+    "2": { nome: "Educador",              emoji: "📚" },
+    "3": { nome: "Gestor / Ponto Focal", emoji: "🏫" },
   },
 
   // ─── CONTEXTO PARA A IA ──────────────────────────────────────────────────
@@ -286,7 +244,9 @@ enviar e-mail para o suporte do projeto.
     rodape_ticket:                "Gerado automaticamente pelo bot de suporte — Learning Passport Brasil",
     aba_tickets:                  "Tickets",
     aba_pontos_focais:            "Pontos_Focais",
-    colunas_ticket:               ["id", "data", "hora", "nome", "telefone", "email", "perfil", "categoria", "duvida", "status"],
+    aba_atendimentos:             "Atendimentos",
+    colunas_ticket:               ["id", "data", "hora", "nome", "telefone", "email", "perfil", "duvida", "status"],
+    colunas_atendimento:          ["data", "hora", "telefone", "perfil", "duvida", "resposta", "origem", "email", "municipio_estado", "virou_ticket"],
   },
 
   // ─── BASE DE CONHECIMENTO (importada de knowledge.js) ────────────────────

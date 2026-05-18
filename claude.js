@@ -85,8 +85,8 @@ ${indiceFAQ}
 ${GUARDRAILS}
 
 CONTEXTO DESTA CONVERSA:
-- Perfil do usuário: ${perfil}
-- Categoria da dúvida: ${categoria}
+- Perfil do usuário: ${perfil || "Não informado"}
+- Tipo de dúvida: ${categoria || "Dúvida aberta (sem categoria pré-definida)"}
 
 Responda de forma direta e prática, com formatação compatível com WhatsApp (*negrito*, listas com números ou ✔️). Máximo 3 parágrafos.`;
 
