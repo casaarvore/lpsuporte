@@ -811,7 +811,11 @@ module.exports = {
         + `3. Escolha um *nome de usuário* (sem espaços, sem acentos, sem caracteres especiais)\n`
         + `   _Exemplo: ana.conceicao, joao_silva, maria-2025_\n`
         + `4. Informe seu *e-mail* (será usado para verificação)\n`
-        + `5. Crie uma *senha* (digite duas vezes para confirmar)\n\n`
+        + `5. Crie uma *senha* (digite duas vezes para confirmar) seguindo as regras:\n`
+        + `   • No mínimo 8 caracteres\n`
+        + `   • Ao menos uma letra minúscula e uma maiúscula\n`
+        + `   • Ao menos um dígito (número) ou símbolo (por exemplo: *)\n`
+        + `   _Exemplo de senha válida: v151824M*_\n\n`
         + `O *nome completo* (com acentos e sobrenome) será preenchido depois, no seu perfil.`,
     },
     {
@@ -861,6 +865,33 @@ module.exports = {
         + `Você também pode baixar o *Cartão de Relatório individual* do aluno, `
         + `disponível na seção *Usuários*: clique sobre o nome do estudante e use `
         + `o botão *"Baixar Cartão de Relatório"*.`,
+    },
+    {
+      keywords: [
+        "regras de senha", "regras da senha", "senha não aceita", "senha nao aceita",
+        "senha rejeitada", "senha fraca", "senha forte", "como deve ser a senha",
+        "qual o tamanho da senha", "tamanho da senha", "minha senha não funciona",
+        "minha senha nao funciona", "senha invalida", "senha inválida",
+        "senha não é aceita", "senha nao e aceita", "requisitos de senha", "caracteres especiais",
+        // Palavras-chave que captam quando o usuário copia trechos da mensagem da plataforma:
+        "the password must", "minimum 8 characters", "8 characters",
+        "lowercase letter", "uppercase letter", "digit / symbol", "digit/symbol",
+        "must have minimum", "password must have"
+      ],
+      resposta:
+        `🔐 *Regras para criar ou redefinir sua senha:*\n\n`
+        + `📌 Quando a senha não atende aos critérios, a plataforma exibe a mensagem em inglês:\n\n`
+        + `_"The password must have minimum 8 characters and contain: a lowercase letter, an uppercase letter, and a digit / symbol."_\n\n`
+        + `*Tradução:*\n`
+        + `A senha deve ter no mínimo 8 caracteres e conter: uma letra minúscula, uma letra maiúscula, e um dígito ou símbolo.\n\n`
+        + `*Resumo das regras:*\n`
+        + `✔️ No mínimo *8 caracteres*\n`
+        + `✔️ Ao menos *uma letra minúscula* (a-z)\n`
+        + `✔️ Ao menos *uma letra maiúscula* (A-Z)\n`
+        + `✔️ Ao menos *um dígito (número)* ou *símbolo* (! @ # $ * etc.)\n\n`
+        + `*Exemplo de senha válida:* v151824M*\n\n`
+        + `_Em caso de dúvida persistente, contate o Suporte Técnico pelo WhatsApp_ `
+        + `*+55 19 99590-8410*.`,
     },
     {
       keywords: [

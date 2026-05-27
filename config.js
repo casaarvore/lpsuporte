@@ -35,16 +35,39 @@ module.exports = {
       + `2️⃣ Sou *Educador*\n`
       + `3️⃣ Sou *Gestor* / Ponto Focal`,
 
+    solicitar_municipio_estado: (primeiroNome) =>
+      `Antes de prosseguir, *${primeiroNome}*, de qual *município* e *estado* você é?\n`
+      + `_(Pode digitar tudo junto, por exemplo: Caucaia, CE. Se preferir não informar, digite "pular".)_`,
+
+    solicitar_escola:
+      `Obrigado! E em qual *escola* ou *secretaria* você atua?\n`
+      + `_(Digite o nome completo da instituição. Se preferir não informar, digite "pular".)_`,
+
     digitar_duvida: (primeiroNome) =>
       `Perfeito, *${primeiroNome}*! 💬\n\n`
       + `Em que posso te ajudar hoje? Descreva sua dúvida com o máximo de detalhes possível.`,
+
+    // Saudação exibida quando o telefone já está cadastrado na aba Usuarios
+    boas_vindas_retorno: (primeiroNome) =>
+      `Olá, *${primeiroNome}*! 👋 Tem algo mais que eu possa te ajudar?\n\n`
+      + `_Pode descrever sua dúvida abaixo. Caso seus dados (escola, perfil ou e-mail) tenham mudado, `
+      + `me avise ao final do atendimento para abrirmos um ticket de atualização._`,
 
     // Exibido após resposta automática (FAQ ou IA)
     pos_resposta_automatica:
       `E aí, essa resposta te ajudou? 😊\n\n`
       + `1️⃣ ✅ Sim, está resolvido!\n`
       + `2️⃣ 💬 Quero fazer mais uma pergunta\n`
-      + `3️⃣ 📋 Não — prefiro abrir um ticket (atendimento humano)`,
+      + `3️⃣ 📋 Gostaria de contato humano assim que possível (abrir um ticket)`,
+
+    // Exibido quando a IA não consegue processar a pergunta (retorno nulo da API
+    // ou falha técnica). Oferece encaminhamento para atendimento humano sem que
+    // o usuário precise reformular a pergunta ou clicar em opções intermediárias.
+    nao_compreendi_oferecer_ticket:
+      `🤔 *Desculpe, não compreendi sua pergunta.*\n\n`
+      + `Mas posso encaminhar para *contato humano*. Você tem interesse?\n\n`
+      + `1️⃣ ✅ Sim, quero contato humano (abrir ticket)\n`
+      + `2️⃣ 💬 Não, vou reformular minha pergunta`,
 
     // Solicita o e-mail apenas no momento de abrir o ticket
     solicitar_email_ticket:
@@ -114,6 +137,21 @@ ACESSO À PLATAFORMA:
 - Para recuperar senha: usar o link "Forgot your password?" na tela de login
 - Erro "502 Bad Gateway": aguardar 5 minutos e tentar novamente
 
+REGRAS OBRIGATÓRIAS DA SENHA (aplicam-se à criação e à redefinição):
+- Mínimo de 8 caracteres
+- Deve conter ao menos uma letra minúscula (a-z)
+- Deve conter ao menos uma letra maiúscula (A-Z)
+- Deve conter um dígito (número) OU um símbolo (caractere especial, por exemplo: *)
+- Exemplo de senha válida: v151824M*
+
+MENSAGEM DE ERRO EXIBIDA PELA PLATAFORMA quando a senha não atende às regras (em inglês):
+"The password must have minimum 8 characters and contain: a lowercase letter, an uppercase letter, and a digit / symbol."
+
+Tradução para o português:
+"A senha deve ter no mínimo 8 caracteres e conter: uma letra minúscula, uma letra maiúscula, e um dígito ou símbolo."
+
+Quando o usuário copiar ou mencionar essa mensagem em inglês, ou disser que a senha "não é aceita", "está fraca" ou "não funciona", reproduza a mensagem original, sua tradução e as quatro regras de forma didática.
+
 HUB OFFLINE (dispositivo físico):
 - Rede Wi-Fi: nome "LearningPassport", senha "learningpassport"
 - Acesso offline: conectar ao Wi-Fi e abrir o endereço fornecido pelo gestor local
@@ -166,7 +204,8 @@ enviar e-mail para o suporte do projeto.
       keywords: [
         "senha", "password", "esqueci", "recuperar", "login",
         "esqueci usuario", "esqueci usuário", "esqueci o login",
-        "esqueci nome de usuario", "esqueci nome de usuário", "perdi senha"
+        "esqueci nome de usuario", "esqueci nome de usuário", "perdi senha",
+        "criar senha", "nova senha", "redefinir senha", "trocar senha", "mudar senha"
       ],
       resposta:
         `🔑 *Recuperação de senha:*\n\n`
@@ -174,8 +213,18 @@ enviar e-mail para o suporte do projeto.
         + `2. Clique em "Iniciar sessão"\n`
         + `3. Clique em *"Forgot your password?"*\n`
         + `4. Digite seu e-mail ou nome de usuário\n`
-        + `5. Verifique sua caixa de entrada (e a pasta de spam)\n\n`
-        + `Se não lembrar o nome de usuário, contacte o gestor da sua escola.`,
+        + `5. Verifique sua caixa de entrada (e a pasta de SPAM)\n\n`
+        + `*Regras para a nova senha:*\n`
+        + `✔️ No mínimo *8 caracteres*\n`
+        + `✔️ Ao menos *uma letra minúscula* (a-z)\n`
+        + `✔️ Ao menos *uma letra maiúscula* (A-Z)\n`
+        + `✔️ Ao menos *um dígito (número)* ou *símbolo* (por exemplo: *)\n\n`
+        + `_Exemplo de senha válida:_ *v151824M\\**\n\n`
+        + `Se você viu a mensagem _"The password must have minimum 8 characters and contain: `
+        + `a lowercase letter, an uppercase letter, and a digit / symbol."_, é exatamente isso `
+        + `que ela está pedindo.\n\n`
+        + `Se não lembrar o nome de usuário, contate o ponto focal da sua escola `
+        + `ou o *Suporte Técnico* pelo WhatsApp +55 19 99590-8410.`,
     },
     {
       keywords: ["certificado", "certificate", "concluí", "concluiu", "terminou"],
@@ -245,8 +294,10 @@ enviar e-mail para o suporte do projeto.
     aba_tickets:                  "Tickets",
     aba_pontos_focais:            "Pontos_Focais",
     aba_atendimentos:             "Atendimentos",
-    colunas_ticket:               ["id", "data", "hora", "nome", "telefone", "email", "perfil", "duvida", "status"],
-    colunas_atendimento:          ["data", "hora", "telefone", "perfil", "duvida", "resposta", "origem", "email", "municipio_estado", "virou_ticket"],
+    aba_usuarios:                 "Usuarios",
+    colunas_ticket:               ["id", "data", "hora", "nome", "telefone", "email", "perfil", "municipio_estado", "escola", "duvida", "status"],
+    colunas_atendimento:          ["data", "hora", "telefone", "perfil", "duvida", "resposta", "origem", "email", "municipio_estado", "escola", "virou_ticket"],
+    colunas_usuario:              ["telefone", "nome_completo", "primeiro_nome", "perfil_id", "perfil_nome", "municipio_estado", "escola", "email", "primeira_interacao", "ultima_interacao"],
   },
 
   // ─── BASE DE CONHECIMENTO (importada de knowledge.js) ────────────────────
