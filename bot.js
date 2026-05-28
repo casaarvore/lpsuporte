@@ -1,20 +1,19 @@
 // ═══════════════════════════════════════════════════════════════════════
 // MÓDULO: Bot — Gerenciamento de sessões e fluxo de conversa
-// Versão: 3.1 — reconhecimento de usuário recorrente + localização
+// Versão: 3.2 — handoff humano com comandos e avaliação automatizada
 //
-// Mudanças em relação à versão 3.0:
-//   • Lookup automático na aba "Usuarios" ao abrir nova sessão
-//   • Usuários recorrentes pulam direto para "Tem algo mais que posso ajudar?"
-//   • Novos estados: AGUARDANDO_MUNICIPIO_ESTADO e AGUARDANDO_ESCOLA
-//   • Coleta opcional de localização (município/estado, escola/secretaria),
-//     com possibilidade de "pular" em ambos os campos
-//   • Dados de localização gravados em Tickets e Atendimentos
-//   • Cadastro do usuário na aba Usuarios após primeira coleta completa
+// Mudanças em relação à versão 3.1:
+//   • Novo: flags humano_atendendo e humano_desde por sessão
+//   • Novo: comandos #humano, #bot, #avaliar (processados via server.js)
+//   • Novo: estado AGUARDANDO_AVALIACAO_HUMANO
+//   • Novo: tarefa periódica que detecta timeout de 30 min e envia avaliação
+//   • Quando humano_atendendo=true, bot retorna null (não responde)
 // ═══════════════════════════════════════════════════════════════════════
 
 const { MENSAGENS, PERFIS, CONFIG } = require("./config");
 const { gerarResposta, verificarFAQ } = require("./claude");
 const { salvarTicket, salvarAtendimento, buscarUsuario, salvarUsuario } = require("./sheets");
+const { enviarMensagem } = require("./zapi");
 
 // ─── Armazenamento de sessões em memória ──────────────────────────────────
 const sessoes = new Map();
@@ -31,8 +30,13 @@ const ESTADOS = {
   AGUARDANDO_CONFIRMA_TICKET_INCOMPREENSAO:"aguardando_confirma_ticket_incompreensao",
   AGUARDANDO_EMAIL_TICKET:                 "aguardando_email_ticket",
   AGUARDANDO_POS_TICKET:                   "aguardando_pos_ticket",
+  AGUARDANDO_AVALIACAO_HUMANO:             "aguardando_avaliacao_humano",
   ENCERRADO:                               "encerrado",
 };
+
+// Tempo (em minutos) de inatividade do atendimento humano antes do bot
+// retomar o controle e enviar a avaliação automática.
+const TIMEOUT_HUMANO_MIN = 30;
 
 // ─── Gerador de ID de ticket ───────────────────────────────────────────────
 function gerarIdTicket() {
@@ -65,6 +69,8 @@ async function criarSessao(telefone) {
     ultima_atividade: Date.now(),
     contagem_mensagens: 0,
     usuario_recorrente: false,
+    humano_atendendo: false,           // true quando o ponto focal assumiu a conversa
+    humano_desde: null,                // timestamp da última atividade do humano
   };
 
   // Consulta a aba Usuarios para reconhecimento
@@ -173,6 +179,19 @@ async function processarMensagem(telefone, textoRecebido) {
   const sessao = await obterSessao(telefone);
   const texto  = textoRecebido.trim();
   sessao.contagem_mensagens++;
+
+  // ── Atendimento humano em curso: bot não responde ────────────────────
+  if (sessao.humano_atendendo) {
+    const minutos = (Date.now() - (sessao.humano_desde || 0)) / 1000 / 60;
+    if (minutos <= TIMEOUT_HUMANO_MIN) {
+      console.log(`[Bot] ${telefone} sob atendimento humano; bot silencioso.`);
+      return null;  // null = server.js NÃO envia mensagem
+    }
+    // Timeout expirou: encerra atendimento humano e dispara avaliação
+    sessao.humano_atendendo = false;
+    sessao.estado = ESTADOS.AGUARDANDO_AVALIACAO_HUMANO;
+    return MENSAGENS.avaliacao_pos_humano(sessao.primeiro_nome || "");
+  }
 
   let resposta = null;
 
@@ -336,6 +355,43 @@ async function processarMensagem(telefone, textoRecebido) {
     }
   }
 
+  // ── ESTADO: aguardando avaliação após atendimento humano ──────────────
+  else if (sessao.estado === ESTADOS.AGUARDANDO_AVALIACAO_HUMANO) {
+
+    if (texto === "1") {
+      // Resolvido
+      sessao.duvida_atual    = sessao.duvida_atual || "Atendimento humano (resolvido)";
+      sessao.resposta_atual  = "Atendimento humano marcado como resolvido pelo usuário";
+      sessao.origem_resposta = "Humano";
+      await registrarAtendimento(sessao, false);
+      sessao.estado = ESTADOS.ENCERRADO;
+      resposta = MENSAGENS.encerramento(sessao.primeiro_nome);
+      sessoes.delete(telefone);
+
+    } else if (texto === "2") {
+      // Nova dúvida
+      sessao.estado = ESTADOS.AGUARDANDO_DUVIDA;
+      sessao.historico = [];
+      resposta = MENSAGENS.digitar_duvida(sessao.primeiro_nome);
+
+    } else if (texto === "3") {
+      // Solicitar agendamento de Google Meet — abre ticket com prefixo
+      sessao.duvida_atual = "[MEET] Solicitação de agendamento por Google Meet após atendimento humano";
+      sessao.estado = ESTADOS.AGUARDANDO_EMAIL_TICKET;
+      resposta = MENSAGENS.solicitar_email_ticket;
+
+    } else if (texto === "4") {
+      // Novo ticket
+      sessao.duvida_atual = "Novo ticket após atendimento humano";
+      sessao.estado = ESTADOS.AGUARDANDO_EMAIL_TICKET;
+      resposta = MENSAGENS.solicitar_email_ticket;
+
+    } else {
+      resposta = MENSAGENS.nao_entendido + "\n\n"
+               + MENSAGENS.avaliacao_pos_humano(sessao.primeiro_nome || "");
+    }
+  }
+
   // ── ESTADO: encerrado — qualquer mensagem reinicia ────────────────────
   else {
     sessoes.delete(telefone);
@@ -358,10 +414,90 @@ function limparSessoesExpiradas() {
   const agora = Date.now();
   for (const [tel, sessao] of sessoes.entries()) {
     const minutos = (agora - sessao.ultima_atividade) / 1000 / 60;
-    if (minutos > CONFIG.timeout_sessao_minutos) sessoes.delete(tel);
+    // Não expira sessões com atendimento humano em curso
+    if (minutos > CONFIG.timeout_sessao_minutos && !sessao.humano_atendendo) {
+      sessoes.delete(tel);
+    }
   }
 }
 
 setInterval(limparSessoesExpiradas, 10 * 60 * 1000);
 
-module.exports = { processarMensagem, ESTADOS };
+// ─── Tarefa periódica: detectar timeout de atendimento humano ─────────────
+// A cada 5 minutos, percorre as sessões; quando o ponto focal ficou inativo
+// por mais de TIMEOUT_HUMANO_MIN minutos, encerra o atendimento humano e
+// envia ao usuário a mensagem de avaliação.
+async function verificarHumanosInativos() {
+  const agora = Date.now();
+  for (const [tel, sessao] of sessoes.entries()) {
+    if (!sessao.humano_atendendo) continue;
+    const minutos = (agora - (sessao.humano_desde || 0)) / 1000 / 60;
+    if (minutos > TIMEOUT_HUMANO_MIN) {
+      sessao.humano_atendendo = false;
+      sessao.estado = ESTADOS.AGUARDANDO_AVALIACAO_HUMANO;
+      console.log(`[Bot] Timeout do humano para ${tel}, enviando avaliação.`);
+      try {
+        await enviarMensagem(tel, MENSAGENS.avaliacao_pos_humano(sessao.primeiro_nome || ""));
+      } catch (err) {
+        console.error("[Bot] Erro ao enviar avaliação automática:", err.message);
+      }
+    }
+  }
+}
+
+setInterval(verificarHumanosInativos, 5 * 60 * 1000);
+
+// ─── Funções públicas para comandos administrativos ──────────────────────
+// Chamadas pelo server.js quando o ponto focal humano envia mensagens
+// fromMe que começam com "#".
+
+async function processarComandoHumano(telefone, comando) {
+  // Garante que existe sessão para receber a flag
+  let sessao = sessoes.get(telefone);
+  if (!sessao) sessao = await criarSessao(telefone);
+
+  const cmd = comando.toLowerCase().trim();
+
+  if (cmd === "#humano") {
+    sessao.humano_atendendo = true;
+    sessao.humano_desde = Date.now();
+    console.log(`[Bot] #humano: atendimento humano iniciado para ${telefone}`);
+    return true;
+
+  } else if (cmd === "#bot") {
+    sessao.humano_atendendo = false;
+    sessao.humano_desde = null;
+    console.log(`[Bot] #bot: bot retomado para ${telefone}`);
+    return true;
+
+  } else if (cmd === "#avaliar") {
+    sessao.humano_atendendo = false;
+    sessao.humano_desde = null;
+    sessao.estado = ESTADOS.AGUARDANDO_AVALIACAO_HUMANO;
+    console.log(`[Bot] #avaliar: avaliação enviada para ${telefone}`);
+    try {
+      await enviarMensagem(telefone, MENSAGENS.avaliacao_pos_humano(sessao.primeiro_nome || ""));
+    } catch (err) {
+      console.error("[Bot] Erro ao enviar avaliação por #avaliar:", err.message);
+    }
+    return true;
+  }
+
+  console.log(`[Bot] Comando não reconhecido: ${comando}`);
+  return false;
+}
+
+// Atualiza o timestamp de atividade humana (chamado a cada mensagem fromMe
+// do ponto focal que não seja um comando #).
+function registrarAtividadeHumana(telefone) {
+  const sessao = sessoes.get(telefone);
+  if (!sessao || !sessao.humano_atendendo) return;
+  sessao.humano_desde = Date.now();
+}
+
+module.exports = {
+  processarMensagem,
+  processarComandoHumano,
+  registrarAtividadeHumana,
+  ESTADOS,
+};

@@ -8,11 +8,11 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const axios = require("axios");
 const path = require("path");
 
-const { processarMensagem } = require("./bot");
+const { processarMensagem, processarComandoHumano, registrarAtividadeHumana } = require("./bot");
 const { listarTickets, buscarPontosFocais, cadastrarPontoFocal } = require("./sheets");
+const { enviarMensagem } = require("./zapi");
 
 const app = express();
 app.use(cors());
@@ -21,26 +21,14 @@ app.use(express.static(path.join(__dirname, "public"))); // painel web
 
 const PORT = process.env.PORT || 3000;
 
-// ─── Função: enviar mensagem pelo Z-API ───────────────────────────────────
-async function enviarMensagem(telefone, texto) {
-  try {
-    const instanceId = process.env.ZAPI_INSTANCE_ID;
-    const token = process.env.ZAPI_TOKEN;
-    const clientToken = process.env.ZAPI_CLIENT_TOKEN;
-
-    await axios.post(
-      `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`,
-      { phone: telefone, message: texto },
-      { headers: { "Client-Token": clientToken } }
-    );
-    console.log(`[Z-API] Mensagem enviada para ${telefone}`);
-  } catch (err) {
-    console.error("[Z-API] Erro ao enviar mensagem:", err.response?.data || err.message);
-  }
-}
-
 // ═══════════════════════════════════════════════════════════════════════
 // WEBHOOK — Recebe mensagens do WhatsApp via Z-API
+// ═══════════════════════════════════════════════════════════════════════
+// Tratamento de mensagens fromMe (versão 3.2 com handoff humano):
+//   • fromMe + texto começando com "#" → comando administrativo do ponto focal
+//   • fromMe + texto comum            → resposta manual do ponto focal
+//                                         (atualiza timestamp de atividade humana)
+//   • !fromMe                         → mensagem do usuário (fluxo normal do bot)
 // ═══════════════════════════════════════════════════════════════════════
 app.post("/webhook", async (req, res) => {
   res.sendStatus(200); // Responde imediatamente ao Z-API
@@ -48,16 +36,36 @@ app.post("/webhook", async (req, res) => {
   try {
     const body = req.body;
 
-    // Ignora mensagens enviadas pelo próprio bot e grupos
-    if (body.fromMe || body.isGroup || !body.text?.message) return;
+    // Ignora grupos e mensagens sem texto
+    if (body.isGroup || !body.text?.message) return;
 
     const telefone = body.phone;
-    const texto = body.text.message;
+    const texto    = body.text.message;
+
+    if (body.fromMe) {
+      // Mensagem da conta do bot. Pode ser:
+      // (1) Eco do envio automático pelo próprio bot (será ignorado abaixo)
+      // (2) Comando administrativo do ponto focal (começa com "#")
+      // (3) Resposta manual do ponto focal via WhatsApp Web
+      const t = texto.trim();
+      if (t.startsWith("#")) {
+        console.log(`[Webhook] Comando do ponto focal para ${telefone}: ${t}`);
+        await processarComandoHumano(telefone, t);
+      } else {
+        // Atualiza timestamp de atividade humana, se houver atendimento em curso
+        registrarAtividadeHumana(telefone);
+      }
+      return;
+    }
 
     console.log(`[Webhook] Mensagem de ${telefone}: "${texto}"`);
 
     const resposta = await processarMensagem(telefone, texto);
-    await enviarMensagem(telefone, resposta);
+    if (resposta) {
+      await enviarMensagem(telefone, resposta);
+    } else {
+      console.log(`[Webhook] Bot silencioso para ${telefone} (atendimento humano).`);
+    }
 
   } catch (err) {
     console.error("[Webhook] Erro:", err.message);

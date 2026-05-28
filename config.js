@@ -69,6 +69,16 @@ module.exports = {
       + `1️⃣ ✅ Sim, quero contato humano (abrir ticket)\n`
       + `2️⃣ 💬 Não, vou reformular minha pergunta`,
 
+    // Avaliação enviada automaticamente após atendimento humano (timeout de
+    // inatividade de 30 minutos ou comando #avaliar do ponto focal).
+    avaliacao_pos_humano: (primeiroNome) =>
+      `🙋 Olá, *${primeiroNome || "tudo bem"}*!\n\n`
+      + `O ponto focal te atendeu há pouco. Como foi a sua experiência?\n\n`
+      + `1️⃣ ✅ Tudo resolvido!\n`
+      + `2️⃣ 💬 Tenho uma nova dúvida (posso te ajudar?)\n`
+      + `3️⃣ 📅 Preciso agendar uma reunião por Google Meet\n`
+      + `4️⃣ 📋 Quero abrir um novo ticket para outro assunto`,
+
     // Solicita o e-mail apenas no momento de abrir o ticket
     solicitar_email_ticket:
       `Para que o ponto focal possa retornar pelo e-mail (além deste WhatsApp), `
