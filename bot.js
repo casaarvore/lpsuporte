@@ -10,7 +10,7 @@
 //   • Quando humano_atendendo=true, bot retorna null (não responde)
 // ═══════════════════════════════════════════════════════════════════════
 
-const { MENSAGENS, PERFIS, CONFIG } = require("./config");
+const { MENSAGENS, PERFIS, CONFIG, BOTOES } = require("./config");
 const { gerarResposta, verificarFAQ } = require("./claude");
 const { salvarTicket, salvarAtendimento, buscarUsuario, salvarUsuario } = require("./sheets");
 const { enviarMensagem } = require("./zapi");
@@ -39,6 +39,13 @@ const ESTADOS = {
 // Tempo (em minutos) de inatividade do atendimento humano antes do bot
 // retomar o controle e enviar a avaliação automática.
 const TIMEOUT_HUMANO_MIN = 30;
+
+// ─── Helper: monta objeto mensagem com botões interativos ────────────────
+// O server.js detecta { texto, botoes } e envia via Z-API send-button-actions
+// (com fallback automático para texto simples caso a API falhe).
+function comBotoes(texto, botoes) {
+  return { texto, botoes };
+}
 
 // ─── Gerador de ID de ticket ───────────────────────────────────────────────
 function gerarIdTicket() {
@@ -218,14 +225,17 @@ async function processarMensagem(telefone, textoRecebido) {
       sessao.nome = texto.trim();
       sessao.primeiro_nome = partes[0];
       sessao.estado = ESTADOS.AGUARDANDO_PERFIL;
-      resposta = MENSAGENS.selecionar_perfil(sessao.primeiro_nome);
+      resposta = comBotoes(MENSAGENS.selecionar_perfil(sessao.primeiro_nome), BOTOES.perfil);
     }
   }
 
   // ── ESTADO: aguardando perfil ─────────────────────────────────────────
   else if (sessao.estado === ESTADOS.AGUARDANDO_PERFIL) {
     if (!PERFIS[texto]) {
-      resposta = MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.selecionar_perfil(sessao.primeiro_nome);
+      resposta = comBotoes(
+        MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.selecionar_perfil(sessao.primeiro_nome),
+        BOTOES.perfil
+      );
     } else {
       sessao.perfil_id   = texto;
       sessao.perfil_nome = `${PERFIS[texto].emoji} ${PERFIS[texto].nome}`;
@@ -262,7 +272,8 @@ async function processarMensagem(telefone, textoRecebido) {
       sessao.historico.push({ de: "usuario", texto: duvida });
       sessao.historico.push({ de: "bot", texto: respostaFAQ });
       sessao.estado = ESTADOS.AGUARDANDO_AVALIACAO;
-      resposta = respostaFAQ + "\n\n──────────\n" + MENSAGENS.pos_resposta_automatica;
+      // Envia em duas mensagens sequenciais (resposta + avaliação com botões)
+      resposta = [respostaFAQ, comBotoes(MENSAGENS.pos_resposta_automatica, BOTOES.avaliacao)];
     } else {
       sessao.historico.push({ de: "usuario", texto: duvida });
       const ia = await gerarResposta({
@@ -277,13 +288,14 @@ async function processarMensagem(telefone, textoRecebido) {
         sessao.resposta_atual = MENSAGENS.nao_compreendi_oferecer_ticket;
         sessao.origem_resposta = "Erro";
         sessao.estado = ESTADOS.AGUARDANDO_CONFIRMA_TICKET_INCOMPREENSAO;
-        resposta = MENSAGENS.nao_compreendi_oferecer_ticket;
+        resposta = comBotoes(MENSAGENS.nao_compreendi_oferecer_ticket, BOTOES.incompreensao);
       } else {
         sessao.resposta_atual = ia;
         sessao.origem_resposta = "IA";
         sessao.historico.push({ de: "bot", texto: ia });
         sessao.estado = ESTADOS.AGUARDANDO_AVALIACAO;
-        resposta = ia + "\n\n──────────\n" + MENSAGENS.pos_resposta_automatica;
+        // Mesmo padrão de fragmentação adotado para o FAQ
+        resposta = [ia, comBotoes(MENSAGENS.pos_resposta_automatica, BOTOES.avaliacao)];
       }
     }
   }
@@ -309,7 +321,10 @@ async function processarMensagem(telefone, textoRecebido) {
       resposta = MENSAGENS.solicitar_descricao_problema;
 
     } else {
-      resposta = MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.pos_resposta_automatica;
+      resposta = comBotoes(
+        MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.pos_resposta_automatica,
+        BOTOES.avaliacao
+      );
     }
   }
 
@@ -328,7 +343,10 @@ async function processarMensagem(telefone, textoRecebido) {
       resposta = MENSAGENS.digitar_duvida(sessao.primeiro_nome);
 
     } else {
-      resposta = MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.nao_compreendi_oferecer_ticket;
+      resposta = comBotoes(
+        MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.nao_compreendi_oferecer_ticket,
+        BOTOES.incompreensao
+      );
     }
   }
 
@@ -346,7 +364,11 @@ async function processarMensagem(telefone, textoRecebido) {
     sessao.email = texto.toLowerCase() === "pular" ? "" : texto;
     const ticketId = await abrirTicket(sessao);
     sessao.estado = ESTADOS.AGUARDANDO_PAUSA_USUARIO;
-    resposta = MENSAGENS.ticket_aberto(ticketId);
+    // Envia confirmação e oferta de pausa em duas mensagens sequenciais
+    resposta = [
+      MENSAGENS.ticket_aberto(ticketId),
+      comBotoes(MENSAGENS.oferta_pausa, BOTOES.pausa),
+    ];
   }
 
   // ── ESTADO: aguardando resposta sobre pausa de 30 minutos (S/N) ───────
@@ -361,7 +383,7 @@ async function processarMensagem(telefone, textoRecebido) {
       resposta = MENSAGENS.pausa_confirmada;
     } else if (t === "n" || t === "nao" || t === "não") {
       sessao.estado = ESTADOS.AGUARDANDO_POS_TICKET;
-      resposta = MENSAGENS.ticket_aberto_opcoes();
+      resposta = comBotoes(MENSAGENS.ticket_aberto_opcoes(), BOTOES.pos_ticket);
     } else {
       resposta = `Por favor, responda com *S* (Sim, pausar) ou *N* (Não, manter bot).`;
     }
@@ -381,7 +403,10 @@ async function processarMensagem(telefone, textoRecebido) {
       sessoes.delete(telefone);
 
     } else {
-      resposta = MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.ticket_aberto_opcoes();
+      resposta = comBotoes(
+        MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.ticket_aberto_opcoes(),
+        BOTOES.pos_ticket
+      );
     }
   }
 

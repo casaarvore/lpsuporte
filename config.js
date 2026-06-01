@@ -92,17 +92,18 @@ module.exports = {
       + `(além deste WhatsApp), por favor informe seu endereço.\n\n`
       + `_(Digite "pular" se preferir não informar.)_`,
 
-    // Exibido após ticket registrado — inclui a oferta de pausa de 30 min
+    // Exibido após ticket registrado (mensagem 1 de 2: confirmação)
     ticket_aberto: (id) =>
       `✅ *Ticket ${id} registrado com sucesso!*\n\n`
       + `🕒 *Prazo de retorno:* até *24 horas* em dias úteis.\n`
       + `_(Em feriados ou finais de semana, o atendimento pode ocorrer no próximo dia útil.)_\n\n`
       + `📞 *Como você será contatado:* o ponto focal responderá pelo *próprio WhatsApp* `
       + `(este número, +55 19 99590-8410) ou pelo *e-mail* informado.\n\n`
-      + `📌 Guarde o número *${id}* para acompanhar sua solicitação. `
-      + `Caso precise complementar a dúvida, basta responder mencionando esse número.\n\n`
-      + `──────────\n`
-      + `🤖 *Deseja interromper as mensagens automáticas por 30 minutos*, `
+      + `📌 Guarde o número *${id}* para acompanhar sua solicitação.`,
+
+    // Oferta de pausa enviada como segunda mensagem após ticket_aberto
+    oferta_pausa:
+      `🤖 *Deseja interromper as mensagens automáticas por 30 minutos*, `
       + `para que o ponto focal possa te atender com tranquilidade?\n\n`
       + `*S* — Sim, pausar por 30 minutos\n`
       + `*N* — Não, manter o bot disponível`,
@@ -129,6 +130,37 @@ module.exports = {
     erro_tecnico:
       `Ocorreu um erro interno. Por favor, tente novamente em alguns instantes `
       + `ou entre em contato com o suporte pelo WhatsApp +55 19 99590-8410.`,
+  },
+
+  // ─── BOTÕES INTERATIVOS ─────────────────────────────────────────────────
+  // Conjuntos de botões enviados como UI clicável via Z-API. Cada botão tem
+  // id (que precisa coincidir com o valor esperado pelo bot.js) e label
+  // (máximo 20 caracteres). O usuário também pode digitar o id manualmente
+  // como alternativa, mantendo retrocompatibilidade.
+
+  BOTOES: {
+    perfil: [
+      { id: "1", label: "🎓 Estudante" },
+      { id: "2", label: "📚 Educador" },
+      { id: "3", label: "🏫 Gestor" },
+    ],
+    avaliacao: [
+      { id: "1", label: "✅ Resolvido!" },
+      { id: "2", label: "💬 Outra pergunta" },
+      { id: "3", label: "📋 Contato humano" },
+    ],
+    pausa: [
+      { id: "S", label: "✅ Sim, pausar" },
+      { id: "N", label: "❌ Não, manter bot" },
+    ],
+    incompreensao: [
+      { id: "1", label: "✅ Contato humano" },
+      { id: "2", label: "💬 Vou reformular" },
+    ],
+    pos_ticket: [
+      { id: "1", label: "💬 Outra pergunta" },
+      { id: "2", label: "👋 Encerrar" },
+    ],
   },
 
   // ─── PERFIS DE USUÁRIO ───────────────────────────────────────────────────
