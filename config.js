@@ -346,10 +346,12 @@ enviar e-mail para o suporte do projeto.
 
   CONFIG: {
     // Liga/desliga o envio de mensagens com botões interativos via Z-API.
-    // Se o plano contratado não entrega botões corretamente (mensagens em
-    // branco ou silêncio do bot), basta colocar `false` aqui. O fluxo
-    // continua funcionando com texto puro, igual à versão anterior.
-    usar_botoes:                  true,
+    // ⚠️ MANTIDO COMO `false` enquanto o suporte do plano Z-API ao endpoint
+    // /send-button-actions não for confirmado. Sintomas de incompatibilidade:
+    // bot fica em silêncio após perguntar o nome (ou em qualquer ponto que
+    // tenha botões). Quando o suporte for confirmado pelo time da Z-API,
+    // alterar para `true` aqui — não precisa mexer em mais nenhum arquivo.
+    usar_botoes:                  false,
 
     timeout_sessao_minutos:       30,
     max_mensagens_antes_ticket:   6,
