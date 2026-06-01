@@ -12,34 +12,7 @@ const path = require("path");
 
 const { processarMensagem, processarComandoHumano, registrarAtividadeHumana } = require("./bot");
 const { listarTickets, buscarPontosFocais, cadastrarPontoFocal } = require("./sheets");
-const { enviarMensagem, enviarBotoes } = require("./zapi");
-
-// ─── Helpers ──────────────────────────────────────────────────────────────
-// Extrai a "resposta efetiva" do payload do webhook. Quando o usuário toca
-// num botão interativo, o ID do botão é o que importa (não o label).
-function extrairTexto(body) {
-  if (body.buttonsResponseMessage && body.buttonsResponseMessage.buttonId) {
-    return body.buttonsResponseMessage.buttonId;
-  }
-  if (body.buttonReply && body.buttonReply.buttonId) {
-    return body.buttonReply.buttonId;
-  }
-  if (body.listResponseMessage && body.listResponseMessage.singleSelectReply) {
-    return body.listResponseMessage.singleSelectReply.selectedRowId;
-  }
-  return body.text && body.text.message;
-}
-
-// Envia um único item (string ou objeto com botões).
-async function enviarItem(telefone, item) {
-  if (typeof item === "string") {
-    return enviarMensagem(telefone, item);
-  }
-  if (item && typeof item === "object" && Array.isArray(item.botoes)) {
-    return enviarBotoes(telefone, item.texto || "", item.botoes);
-  }
-  return false;
-}
+const { enviarMensagem } = require("./zapi");
 
 const app = express();
 app.use(cors());
@@ -63,19 +36,18 @@ app.post("/webhook", async (req, res) => {
   try {
     const body = req.body;
 
-    // Ignora grupos
-    if (body.isGroup) return;
+    // Ignora grupos e mensagens sem texto
+    if (body.isGroup || !body.text?.message) return;
 
     const telefone = body.phone;
-    const texto    = extrairTexto(body);
-    if (!texto) return;  // mensagem sem texto utilizável
+    const texto    = body.text.message;
 
     if (body.fromMe) {
       // Mensagem da conta do bot. Pode ser:
       // (1) Eco do envio automático pelo próprio bot (será ignorado abaixo)
       // (2) Comando administrativo do ponto focal (começa com "#")
       // (3) Resposta manual do ponto focal via WhatsApp Web
-      const t = (texto || "").trim();
+      const t = texto.trim();
       if (t.startsWith("#")) {
         console.log(`[Webhook] Comando do ponto focal para ${telefone}: ${t}`);
         await processarComandoHumano(telefone, t);
@@ -90,19 +62,16 @@ app.post("/webhook", async (req, res) => {
 
     const resposta = await processarMensagem(telefone, texto);
     if (resposta) {
-      // Suporta três formatos de retorno:
-      //   • string                              → texto simples
-      //   • { texto, botoes }                   → mensagem com botões interativos
-      //   • array de strings ou objetos acima   → mensagens sequenciais com 1.2s
-      // O envio em sequência com pequeno intervalo evita o efeito de "muro de
-      // texto" e dá ritmo mais natural à conversa.
+      // Suporta retorno como string única ou array de strings (mensagens
+      // sequenciais). O envio em sequência com pequeno intervalo evita o
+      // efeito de "muro de texto" e dá ritmo mais natural à conversa.
       if (Array.isArray(resposta)) {
         for (let i = 0; i < resposta.length; i++) {
           if (i > 0) await new Promise((r) => setTimeout(r, 1200));
-          if (resposta[i]) await enviarItem(telefone, resposta[i]);
+          if (resposta[i]) await enviarMensagem(telefone, resposta[i]);
         }
       } else {
-        await enviarItem(telefone, resposta);
+        await enviarMensagem(telefone, resposta);
       }
     } else {
       console.log(`[Webhook] Bot silencioso para ${telefone} (atendimento humano).`);

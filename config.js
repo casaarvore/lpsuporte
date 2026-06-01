@@ -132,37 +132,6 @@ module.exports = {
       + `ou entre em contato com o suporte pelo WhatsApp +55 19 99590-8410.`,
   },
 
-  // ─── BOTÕES INTERATIVOS ─────────────────────────────────────────────────
-  // Conjuntos de botões enviados como UI clicável via Z-API. Cada botão tem
-  // id (que precisa coincidir com o valor esperado pelo bot.js) e label
-  // (máximo 20 caracteres). O usuário também pode digitar o id manualmente
-  // como alternativa, mantendo retrocompatibilidade.
-
-  BOTOES: {
-    perfil: [
-      { id: "1", label: "🎓 Estudante" },
-      { id: "2", label: "📚 Educador" },
-      { id: "3", label: "🏫 Gestor" },
-    ],
-    avaliacao: [
-      { id: "1", label: "✅ Resolvido!" },
-      { id: "2", label: "💬 Outra pergunta" },
-      { id: "3", label: "📋 Contato humano" },
-    ],
-    pausa: [
-      { id: "S", label: "✅ Sim, pausar" },
-      { id: "N", label: "❌ Não, manter bot" },
-    ],
-    incompreensao: [
-      { id: "1", label: "✅ Contato humano" },
-      { id: "2", label: "💬 Vou reformular" },
-    ],
-    pos_ticket: [
-      { id: "1", label: "💬 Outra pergunta" },
-      { id: "2", label: "👋 Encerrar" },
-    ],
-  },
-
   // ─── PERFIS DE USUÁRIO ───────────────────────────────────────────────────
   // A partir da versão 3.0 do bot, as categorias foram eliminadas: o usuário
   // descreve a dúvida diretamente após informar o perfil. A IA e a FAQ
@@ -345,14 +314,6 @@ enviar e-mail para o suporte do projeto.
   // ─── CONFIGURAÇÕES GERAIS ────────────────────────────────────────────────
 
   CONFIG: {
-    // Liga/desliga o envio de mensagens com botões interativos via Z-API.
-    // ⚠️ MANTIDO COMO `false` enquanto o suporte do plano Z-API ao endpoint
-    // /send-button-actions não for confirmado. Sintomas de incompatibilidade:
-    // bot fica em silêncio após perguntar o nome (ou em qualquer ponto que
-    // tenha botões). Quando o suporte for confirmado pelo time da Z-API,
-    // alterar para `true` aqui — não precisa mexer em mais nenhum arquivo.
-    usar_botoes:                  false,
-
     timeout_sessao_minutos:       30,
     max_mensagens_antes_ticket:   6,
     rodape_ticket:                "Gerado automaticamente pelo bot de suporte — Learning Passport Brasil",

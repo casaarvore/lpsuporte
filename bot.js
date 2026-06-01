@@ -10,7 +10,7 @@
 //   • Quando humano_atendendo=true, bot retorna null (não responde)
 // ═══════════════════════════════════════════════════════════════════════
 
-const { MENSAGENS, PERFIS, CONFIG, BOTOES } = require("./config");
+const { MENSAGENS, PERFIS, CONFIG } = require("./config");
 const { gerarResposta, verificarFAQ } = require("./claude");
 const { salvarTicket, salvarAtendimento, buscarUsuario, salvarUsuario } = require("./sheets");
 const { enviarMensagem } = require("./zapi");
@@ -39,20 +39,6 @@ const ESTADOS = {
 // Tempo (em minutos) de inatividade do atendimento humano antes do bot
 // retomar o controle e enviar a avaliação automática.
 const TIMEOUT_HUMANO_MIN = 30;
-
-// ─── Helper: monta objeto mensagem com botões interativos ────────────────
-// O server.js detecta { texto, botoes } e envia via Z-API send-button-actions
-// (com fallback automático para texto simples caso a API falhe).
-//
-// IMPORTANTE: respeita a flag CONFIG.usar_botoes. Caso o plano do Z-API
-// não esteja entregando botões corretamente (silêncio, mensagens vazias),
-// basta setar CONFIG.usar_botoes = false em config.js para o bot voltar
-// imediatamente ao envio de texto puro com a lista numerada de opções
-// (que já consta no próprio texto da mensagem).
-function comBotoes(texto, botoes) {
-  if (!CONFIG.usar_botoes) return texto;
-  return { texto, botoes };
-}
 
 // ─── Gerador de ID de ticket ───────────────────────────────────────────────
 function gerarIdTicket() {
@@ -232,17 +218,14 @@ async function processarMensagem(telefone, textoRecebido) {
       sessao.nome = texto.trim();
       sessao.primeiro_nome = partes[0];
       sessao.estado = ESTADOS.AGUARDANDO_PERFIL;
-      resposta = comBotoes(MENSAGENS.selecionar_perfil(sessao.primeiro_nome), BOTOES.perfil);
+      resposta = MENSAGENS.selecionar_perfil(sessao.primeiro_nome);
     }
   }
 
   // ── ESTADO: aguardando perfil ─────────────────────────────────────────
   else if (sessao.estado === ESTADOS.AGUARDANDO_PERFIL) {
     if (!PERFIS[texto]) {
-      resposta = comBotoes(
-        MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.selecionar_perfil(sessao.primeiro_nome),
-        BOTOES.perfil
-      );
+      resposta = MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.selecionar_perfil(sessao.primeiro_nome);
     } else {
       sessao.perfil_id   = texto;
       sessao.perfil_nome = `${PERFIS[texto].emoji} ${PERFIS[texto].nome}`;
@@ -279,8 +262,9 @@ async function processarMensagem(telefone, textoRecebido) {
       sessao.historico.push({ de: "usuario", texto: duvida });
       sessao.historico.push({ de: "bot", texto: respostaFAQ });
       sessao.estado = ESTADOS.AGUARDANDO_AVALIACAO;
-      // Envia em duas mensagens sequenciais (resposta + avaliação com botões)
-      resposta = [respostaFAQ, comBotoes(MENSAGENS.pos_resposta_automatica, BOTOES.avaliacao)];
+      // Envia em duas mensagens sequenciais (resposta + avaliação) para
+      // evitar o efeito de bloco único cansativo de ler.
+      resposta = [respostaFAQ, MENSAGENS.pos_resposta_automatica];
     } else {
       sessao.historico.push({ de: "usuario", texto: duvida });
       const ia = await gerarResposta({
@@ -295,14 +279,14 @@ async function processarMensagem(telefone, textoRecebido) {
         sessao.resposta_atual = MENSAGENS.nao_compreendi_oferecer_ticket;
         sessao.origem_resposta = "Erro";
         sessao.estado = ESTADOS.AGUARDANDO_CONFIRMA_TICKET_INCOMPREENSAO;
-        resposta = comBotoes(MENSAGENS.nao_compreendi_oferecer_ticket, BOTOES.incompreensao);
+        resposta = MENSAGENS.nao_compreendi_oferecer_ticket;
       } else {
         sessao.resposta_atual = ia;
         sessao.origem_resposta = "IA";
         sessao.historico.push({ de: "bot", texto: ia });
         sessao.estado = ESTADOS.AGUARDANDO_AVALIACAO;
         // Mesmo padrão de fragmentação adotado para o FAQ
-        resposta = [ia, comBotoes(MENSAGENS.pos_resposta_automatica, BOTOES.avaliacao)];
+        resposta = [ia, MENSAGENS.pos_resposta_automatica];
       }
     }
   }
@@ -328,10 +312,7 @@ async function processarMensagem(telefone, textoRecebido) {
       resposta = MENSAGENS.solicitar_descricao_problema;
 
     } else {
-      resposta = comBotoes(
-        MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.pos_resposta_automatica,
-        BOTOES.avaliacao
-      );
+      resposta = MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.pos_resposta_automatica;
     }
   }
 
@@ -350,10 +331,7 @@ async function processarMensagem(telefone, textoRecebido) {
       resposta = MENSAGENS.digitar_duvida(sessao.primeiro_nome);
 
     } else {
-      resposta = comBotoes(
-        MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.nao_compreendi_oferecer_ticket,
-        BOTOES.incompreensao
-      );
+      resposta = MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.nao_compreendi_oferecer_ticket;
     }
   }
 
@@ -372,10 +350,7 @@ async function processarMensagem(telefone, textoRecebido) {
     const ticketId = await abrirTicket(sessao);
     sessao.estado = ESTADOS.AGUARDANDO_PAUSA_USUARIO;
     // Envia confirmação e oferta de pausa em duas mensagens sequenciais
-    resposta = [
-      MENSAGENS.ticket_aberto(ticketId),
-      comBotoes(MENSAGENS.oferta_pausa, BOTOES.pausa),
-    ];
+    resposta = [MENSAGENS.ticket_aberto(ticketId), MENSAGENS.oferta_pausa];
   }
 
   // ── ESTADO: aguardando resposta sobre pausa de 30 minutos (S/N) ───────
@@ -390,7 +365,7 @@ async function processarMensagem(telefone, textoRecebido) {
       resposta = MENSAGENS.pausa_confirmada;
     } else if (t === "n" || t === "nao" || t === "não") {
       sessao.estado = ESTADOS.AGUARDANDO_POS_TICKET;
-      resposta = comBotoes(MENSAGENS.ticket_aberto_opcoes(), BOTOES.pos_ticket);
+      resposta = MENSAGENS.ticket_aberto_opcoes();
     } else {
       resposta = `Por favor, responda com *S* (Sim, pausar) ou *N* (Não, manter bot).`;
     }
@@ -410,10 +385,7 @@ async function processarMensagem(telefone, textoRecebido) {
       sessoes.delete(telefone);
 
     } else {
-      resposta = comBotoes(
-        MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.ticket_aberto_opcoes(),
-        BOTOES.pos_ticket
-      );
+      resposta = MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.ticket_aberto_opcoes();
     }
   }
 
