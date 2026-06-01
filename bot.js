@@ -28,7 +28,9 @@ const ESTADOS = {
   AGUARDANDO_DUVIDA:                       "aguardando_duvida",
   AGUARDANDO_AVALIACAO:                    "aguardando_avaliacao",
   AGUARDANDO_CONFIRMA_TICKET_INCOMPREENSAO:"aguardando_confirma_ticket_incompreensao",
+  AGUARDANDO_DESCRICAO_PROBLEMA:           "aguardando_descricao_problema",
   AGUARDANDO_EMAIL_TICKET:                 "aguardando_email_ticket",
+  AGUARDANDO_PAUSA_USUARIO:                "aguardando_pausa_usuario",
   AGUARDANDO_POS_TICKET:                   "aguardando_pos_ticket",
   AGUARDANDO_AVALIACAO_HUMANO:             "aguardando_avaliacao_humano",
   ENCERRADO:                               "encerrado",
@@ -302,8 +304,9 @@ async function processarMensagem(telefone, textoRecebido) {
       resposta = MENSAGENS.digitar_duvida(sessao.primeiro_nome);
 
     } else if (texto === "3") {
-      sessao.estado = ESTADOS.AGUARDANDO_EMAIL_TICKET;
-      resposta = MENSAGENS.solicitar_email_ticket;
+      // Antes de pedir e-mail, solicita descrição detalhada do problema
+      sessao.estado = ESTADOS.AGUARDANDO_DESCRICAO_PROBLEMA;
+      resposta = MENSAGENS.solicitar_descricao_problema;
 
     } else {
       resposta = MENSAGENS.nao_entendido + "\n\n" + MENSAGENS.pos_resposta_automatica;
@@ -316,8 +319,8 @@ async function processarMensagem(telefone, textoRecebido) {
   else if (sessao.estado === ESTADOS.AGUARDANDO_CONFIRMA_TICKET_INCOMPREENSAO) {
 
     if (texto === "1") {
-      sessao.estado = ESTADOS.AGUARDANDO_EMAIL_TICKET;
-      resposta = MENSAGENS.solicitar_email_ticket;
+      sessao.estado = ESTADOS.AGUARDANDO_DESCRICAO_PROBLEMA;
+      resposta = MENSAGENS.solicitar_descricao_problema;
 
     } else if (texto === "2") {
       sessao.estado = ESTADOS.AGUARDANDO_DUVIDA;
@@ -329,12 +332,39 @@ async function processarMensagem(telefone, textoRecebido) {
     }
   }
 
+  // ── ESTADO: aguardando descrição detalhada do problema (antes do ticket) ─
+  // O texto digitado aqui substitui a dúvida_atual e será gravado no ticket
+  // como descrição principal para o ponto focal.
+  else if (sessao.estado === ESTADOS.AGUARDANDO_DESCRICAO_PROBLEMA) {
+    sessao.duvida_atual = texto;
+    sessao.estado = ESTADOS.AGUARDANDO_EMAIL_TICKET;
+    resposta = MENSAGENS.solicitar_email_ticket;
+  }
+
   // ── ESTADO: aguardando e-mail para o ticket ───────────────────────────
   else if (sessao.estado === ESTADOS.AGUARDANDO_EMAIL_TICKET) {
     sessao.email = texto.toLowerCase() === "pular" ? "" : texto;
     const ticketId = await abrirTicket(sessao);
-    sessao.estado = ESTADOS.AGUARDANDO_POS_TICKET;
+    sessao.estado = ESTADOS.AGUARDANDO_PAUSA_USUARIO;
     resposta = MENSAGENS.ticket_aberto(ticketId);
+  }
+
+  // ── ESTADO: aguardando resposta sobre pausa de 30 minutos (S/N) ───────
+  // Aciona logo após a abertura do ticket. O usuário pode optar por silenciar
+  // o bot por 30 minutos (reusa a mesma lógica de humano_atendendo).
+  else if (sessao.estado === ESTADOS.AGUARDANDO_PAUSA_USUARIO) {
+    const t = texto.toLowerCase().trim();
+    if (t === "s" || t === "sim") {
+      sessao.humano_atendendo = true;
+      sessao.humano_desde = Date.now();
+      sessao.estado = ESTADOS.ENCERRADO;
+      resposta = MENSAGENS.pausa_confirmada;
+    } else if (t === "n" || t === "nao" || t === "não") {
+      sessao.estado = ESTADOS.AGUARDANDO_POS_TICKET;
+      resposta = MENSAGENS.ticket_aberto_opcoes();
+    } else {
+      resposta = `Por favor, responda com *S* (Sim, pausar) ou *N* (Não, manter bot).`;
+    }
   }
 
   // ── ESTADO: aguardando escolha pós-ticket ─────────────────────────────
@@ -375,16 +405,15 @@ async function processarMensagem(telefone, textoRecebido) {
       resposta = MENSAGENS.digitar_duvida(sessao.primeiro_nome);
 
     } else if (texto === "3") {
-      // Solicitar agendamento de Google Meet — abre ticket com prefixo
-      sessao.duvida_atual = "[MEET] Solicitação de agendamento por Google Meet após atendimento humano";
-      sessao.estado = ESTADOS.AGUARDANDO_EMAIL_TICKET;
-      resposta = MENSAGENS.solicitar_email_ticket;
+      // Solicitar agendamento de Google Meet — passa pela descrição
+      sessao.duvida_atual = "[MEET] Solicitação de agendamento por Google Meet";
+      sessao.estado = ESTADOS.AGUARDANDO_DESCRICAO_PROBLEMA;
+      resposta = MENSAGENS.solicitar_descricao_problema;
 
     } else if (texto === "4") {
-      // Novo ticket
-      sessao.duvida_atual = "Novo ticket após atendimento humano";
-      sessao.estado = ESTADOS.AGUARDANDO_EMAIL_TICKET;
-      resposta = MENSAGENS.solicitar_email_ticket;
+      // Novo ticket — passa pela descrição
+      sessao.estado = ESTADOS.AGUARDANDO_DESCRICAO_PROBLEMA;
+      resposta = MENSAGENS.solicitar_descricao_problema;
 
     } else {
       resposta = MENSAGENS.nao_entendido + "\n\n"
@@ -458,16 +487,17 @@ async function processarComandoHumano(telefone, comando) {
 
   const cmd = comando.toLowerCase().trim();
 
-  if (cmd === "#humano") {
+  // Atalhos: "#" pausa (igual a #humano); "##" retoma (igual a #bot)
+  if (cmd === "#humano" || cmd === "#") {
     sessao.humano_atendendo = true;
     sessao.humano_desde = Date.now();
-    console.log(`[Bot] #humano: atendimento humano iniciado para ${telefone}`);
+    console.log(`[Bot] ${cmd}: atendimento humano iniciado para ${telefone}`);
     return true;
 
-  } else if (cmd === "#bot") {
+  } else if (cmd === "#bot" || cmd === "##") {
     sessao.humano_atendendo = false;
     sessao.humano_desde = null;
-    console.log(`[Bot] #bot: bot retomado para ${telefone}`);
+    console.log(`[Bot] ${cmd}: bot retomado para ${telefone}`);
     return true;
 
   } else if (cmd === "#avaliar") {

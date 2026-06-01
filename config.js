@@ -79,24 +79,39 @@ module.exports = {
       + `3️⃣ 📅 Preciso agendar uma reunião por Google Meet\n`
       + `4️⃣ 📋 Quero abrir um novo ticket para outro assunto`,
 
+    // Solicita descrição detalhada do problema antes de abrir o ticket
+    solicitar_descricao_problema:
+      `📝 *Antes de abrir seu ticket*, por favor descreva o seu problema com o `
+      + `*máximo de detalhes possível*.\n\n`
+      + `_Quanto mais informações você fornecer (tela onde aconteceu, mensagem de erro, `
+      + `dispositivo usado, etc.), mais ágil será o atendimento._`,
+
     // Solicita o e-mail apenas no momento de abrir o ticket
     solicitar_email_ticket:
-      `Para que o ponto focal possa retornar pelo e-mail (além deste WhatsApp), `
-      + `por favor informe seu *e-mail*.\n\n`
+      `Obrigado pela descrição! Agora, para que o ponto focal possa retornar pelo *e-mail* `
+      + `(além deste WhatsApp), por favor informe seu endereço.\n\n`
       + `_(Digite "pular" se preferir não informar.)_`,
 
-    // Exibido após ticket registrado
+    // Exibido após ticket registrado — inclui a oferta de pausa de 30 min
     ticket_aberto: (id) =>
-      `✅ Ticket *${id}* registrado com sucesso!\n\n`
+      `✅ *Ticket ${id} registrado com sucesso!*\n\n`
       + `🕒 *Prazo de retorno:* até *24 horas* em dias úteis.\n`
       + `_(Em feriados ou finais de semana, o atendimento pode ocorrer no próximo dia útil.)_\n\n`
       + `📞 *Como você será contatado:* o ponto focal responderá pelo *próprio WhatsApp* `
       + `(este número, +55 19 99590-8410) ou pelo *e-mail* informado.\n\n`
       + `📌 Guarde o número *${id}* para acompanhar sua solicitação. `
       + `Caso precise complementar a dúvida, basta responder mencionando esse número.\n\n`
-      + `O que deseja fazer agora?\n\n`
-      + `1️⃣ 💬 Fazer outra pergunta\n`
-      + `2️⃣ 👋 Encerrar`,
+      + `──────────\n`
+      + `🤖 *Deseja interromper as mensagens automáticas por 30 minutos*, `
+      + `para que o ponto focal possa te atender com tranquilidade?\n\n`
+      + `*S* — Sim, pausar por 30 minutos\n`
+      + `*N* — Não, manter o bot disponível`,
+
+    // Confirmação após o usuário escolher pausar o bot
+    pausa_confirmada:
+      `🔇 *Mensagens automáticas pausadas por 30 minutos.*\n\n`
+      + `O ponto focal entrará em contato em breve por este WhatsApp ou pelo e-mail informado.\n\n`
+      + `_Após esse período, você receberá uma mensagem para avaliarmos como foi o atendimento._`,
 
     // Reenvia as opções pós-ticket se o usuário digitar algo inválido
     ticket_aberto_opcoes: () =>
