@@ -345,6 +345,12 @@ enviar e-mail para o suporte do projeto.
   // ─── CONFIGURAÇÕES GERAIS ────────────────────────────────────────────────
 
   CONFIG: {
+    // Liga/desliga o envio de mensagens com botões interativos via Z-API.
+    // Se o plano contratado não entrega botões corretamente (mensagens em
+    // branco ou silêncio do bot), basta colocar `false` aqui. O fluxo
+    // continua funcionando com texto puro, igual à versão anterior.
+    usar_botoes:                  true,
+
     timeout_sessao_minutos:       30,
     max_mensagens_antes_ticket:   6,
     rodape_ticket:                "Gerado automaticamente pelo bot de suporte — Learning Passport Brasil",

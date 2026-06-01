@@ -43,7 +43,14 @@ const TIMEOUT_HUMANO_MIN = 30;
 // ─── Helper: monta objeto mensagem com botões interativos ────────────────
 // O server.js detecta { texto, botoes } e envia via Z-API send-button-actions
 // (com fallback automático para texto simples caso a API falhe).
+//
+// IMPORTANTE: respeita a flag CONFIG.usar_botoes. Caso o plano do Z-API
+// não esteja entregando botões corretamente (silêncio, mensagens vazias),
+// basta setar CONFIG.usar_botoes = false em config.js para o bot voltar
+// imediatamente ao envio de texto puro com a lista numerada de opções
+// (que já consta no próprio texto da mensagem).
 function comBotoes(texto, botoes) {
+  if (!CONFIG.usar_botoes) return texto;
   return { texto, botoes };
 }
 
