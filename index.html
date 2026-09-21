@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central de Painéis — Territórios Conectados</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F6F3FB; --surface: #FFFFFF; --ink: #241B36; --ink-soft: #4B3E63; --muted: #8A7FA3;
+    --primary: #6C3FA6; --primary-dark: #4B2876; --primary-tint: #EDE7F6;
+    --accent: #FF8B5E; --accent-tint: #FFEBDF;
+    --border: #E2DAF0;
+    --shadow: 0 8px 24px -12px rgba(76, 40, 118, 0.25);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 500px at 100% -10%, rgba(255,139,94,0.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 0%, rgba(108,63,166,0.12), transparent 55%),
+      var(--bg);
+    color:var(--ink); font-family:'Inter', system-ui, sans-serif; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:980px; margin:0 auto; padding:56px 24px 80px; }
+  header{ margin-bottom:40px; }
+  .eyebrow{ font-family:'JetBrains Mono', monospace; font-size:12.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--primary); font-weight:600; display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .eyebrow::before{ content:""; width:7px;height:7px;border-radius:50%; background:var(--accent); display:inline-block; }
+  h1{ font-family:'Fraunces', serif; font-weight:600; font-size:clamp(30px, 4.4vw, 44px); line-height:1.08; margin:0 0 10px; letter-spacing:-0.01em; color:var(--primary-dark); text-wrap:balance; }
+  .subtitle{ color:var(--ink-soft); font-size:16px; max-width:52ch; line-height:1.55; }
+
+  .hub-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px; }
+
+  .hub-card{
+    position:relative; display:flex; flex-direction:column; gap:10px;
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:26px 24px 22px; box-shadow:var(--shadow); overflow:hidden;
+    text-decoration:none; color:inherit;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .hub-card::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:4px;
+    background:linear-gradient(90deg, var(--primary), var(--accent)); opacity:.95;
+  }
+  .hub-card:hover{ transform:translateY(-3px); box-shadow:0 14px 32px -14px rgba(76,40,118,.35); }
+  .hub-card .card-eyebrow{
+    font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; margin-top:4px;
+  }
+  .hub-card h2{
+    font-family:'Fraunces', serif; font-weight:600; font-size:22px; line-height:1.15;
+    margin:0; color:var(--primary-dark); letter-spacing:-0.01em;
+  }
+  .hub-card p{ margin:0; font-size:14px; color:var(--ink-soft); line-height:1.5; }
+  .hub-card .meta{
+    margin-top:10px; padding-top:14px; border-top:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--muted);
+  }
+  .hub-card .meta .go{ color:var(--primary); font-weight:600; display:inline-flex; align-items:center; gap:4px; }
+  .hub-card:hover .meta .go{ color:var(--accent); }
+
+  .hub-card.soon{ opacity:.55; cursor:default; }
+  .hub-card.soon::before{ background:var(--border); }
+  .hub-card.soon:hover{ transform:none; box-shadow:var(--shadow); }
+  .hub-card.soon .meta .go{ color:var(--muted); }
+
+  footer{ margin-top:56px; text-align:center; font-size:11.5px; color:var(--muted); font-family:'JetBrains Mono', monospace; }
+  footer b{ color:var(--primary-dark); }
+</style>
+
+<!-- CASA ARVORE: BARREIRA PRIMARIA DE ACESSO -->
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet">
+<script>
+(function() {
+  var KEY = "ca_tc26_auth";
+  try {
+    if (sessionStorage.getItem(KEY) === "ok") {
+      document.documentElement.classList.add("ca-authenticated");
+    } else {
+      document.documentElement.classList.add("ca-locked");
+    }
+  } catch (e) {
+    document.documentElement.classList.add("ca-locked");
+  }
+})();
+</script>
+<style id="ca-access-style">
+html.ca-locked body > * { display:none !important; }
+html.ca-locked body > #ca-access-gate { display:flex !important; }
+
+#ca-access-gate {
+  position:fixed;
+  inset:0;
+  z-index:2147483647;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:
+    radial-gradient(1000px 420px at 100% -10%, rgba(255,139,94,.12), transparent 60%),
+    radial-gradient(800px 480px at -10% 0%, rgba(108,63,166,.14), transparent 55%),
+    #F6F3FB;
+  font-family:Inter, Archivo, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color:#241B36;
+}
+
+#ca-access-card {
+  width:min(100%, 430px);
+  background:#fff;
+  border:1px solid #E2DAF0;
+  border-radius:18px;
+  box-shadow:0 22px 60px -28px rgba(76,40,118,.5);
+  padding:34px 32px 30px;
+}
+
+#ca-access-brand {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:22px;
+}
+
+#ca-access-logo {
+  display:grid;
+  grid-template-columns:repeat(2,13px);
+  grid-template-rows:repeat(2,13px);
+  gap:3px;
+  flex:none;
+}
+#ca-access-logo span { border-radius:4px; }
+#ca-access-logo span:nth-child(1) { background:#FF8B5E; }
+#ca-access-logo span:nth-child(2) { background:#E0A72E; }
+#ca-access-logo span:nth-child(3) { background:#6C3FA6; }
+#ca-access-logo span:nth-child(4) { background:#2FAE72; }
+
+#ca-access-brand-text {
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#6C3FA6;
+}
+
+#ca-access-card h1 {
+  margin:0 0 8px;
+  color:#4B2876;
+  font-family:Fraunces, Georgia, serif;
+  font-size:30px;
+  line-height:1.1;
+}
+
+#ca-access-card p {
+  margin:0 0 22px;
+  color:#4B3E63;
+  font-size:14px;
+  line-height:1.55;
+}
+
+#ca-access-form label {
+  display:block;
+  margin-bottom:7px;
+  color:#4B3E63;
+  font-size:12px;
+  font-weight:700;
+}
+
+#ca-access-password {
+  width:100%;
+  height:46px;
+  border:1px solid #D7CDE8;
+  border-radius:10px;
+  padding:0 13px;
+  font:inherit;
+  font-size:15px;
+  color:#241B36;
+  background:#fff;
+  outline:none;
+}
+
+#ca-access-password:focus {
+  border-color:#6C3FA6;
+  box-shadow:0 0 0 3px rgba(108,63,166,.13);
+}
+
+#ca-access-submit {
+  width:100%;
+  height:46px;
+  margin-top:12px;
+  border:0;
+  border-radius:10px;
+  background:#6C3FA6;
+  color:#fff;
+  font:inherit;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+#ca-access-submit:hover { background:#4B2876; }
+#ca-access-submit:disabled { opacity:.65; cursor:wait; }
+
+#ca-access-error {
+  min-height:19px;
+  margin-top:10px;
+  color:#B02A2A;
+  font-size:12px;
+}
+
+#ca-access-note {
+  margin-top:12px !important;
+  margin-bottom:0 !important;
+  color:#8A7FA3 !important;
+  font-size:11.5px !important;
+}
+
+#ca-logout {
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:2147483000;
+  border:1px solid #D7CDE8;
+  border-radius:999px;
+  padding:8px 13px;
+  background:rgba(255,255,255,.96);
+  color:#4B2876;
+  box-shadow:0 8px 22px -14px rgba(76,40,118,.5);
+  font:600 12px Inter, Archivo, system-ui, sans-serif;
+  cursor:pointer;
+}
+#ca-logout:hover { background:#EDE7F6; }
+
+@media (max-width:520px) {
+  #ca-access-card { padding:28px 22px 24px; }
+  #ca-access-card h1 { font-size:27px; }
+}
+</style>
+<!-- /CASA ARVORE: BARREIRA PRIMARIA DE ACESSO -->
+
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Casa Árvore · Territórios Conectados</div>
+    <h1>Central de Painéis</h1>
+    <div class="subtitle">Learning Passport Brasil — escolha um painel para explorar os dados de participação e progresso.</div>
+  </header>
+
+  <div class="hub-grid">
+    <a class="hub-card" href="painel-de-cursos.html">
+      <div class="card-eyebrow">Territórios Conectados</div>
+      <h2>Painel de cursos</h2>
+      <p>Engajamento e progresso dos participantes nas formações da plataforma, organizados por território, perfil e escola.</p>
+      <div class="meta"><span>10 versões · desde 01/06/2026</span><span class="go">Abrir →</span></div>
+    </a>
+
+    <a class="hub-card" href="progresso-individual.html">
+      <div class="card-eyebrow">Learning Passport Brasil</div>
+      <h2>Progresso individual por curso</h2>
+      <p>Filtre por estado, cidade/município e curso para acompanhar o desempenho de cada participante em cada um dos 20 cursos.</p>
+      <div class="meta"><span>2 versões · desde 09/09/2026</span><span class="go">Abrir →</span></div>
+    </a>
+
+    <div class="hub-card soon">
+      <div class="card-eyebrow">Territórios Conectados</div>
+      <h2>Suporte técnico</h2>
+      <p>Volume e natureza dos chamados de suporte técnico recebidos pela equipe.</p>
+      <div class="meta"><span>Em preparação</span><span class="go">Em breve</span></div>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2026 Casa Árvore · <b>Territórios Conectados</b>
+  </footer>
+</div>
+
+<!-- CASA ARVORE: CONTROLE DE SESSAO -->
+<script>
+(function() {
+  "use strict";
+
+  var KEY = "ca_tc26_auth";
+  var EXPECTED_HASH = "6cd52a8b13f4ae13690033c45633779351fcbbce616a5fc4337891188b49c87a";
+
+  function hex(buffer) {
+    return Array.prototype.map.call(
+      new Uint8Array(buffer),
+      function (b) { return b.toString(16).padStart(2, "0"); }
+    ).join("");
+  }
+
+  async function sha256(text) {
+    var data = new TextEncoder().encode(text);
+    var digest = await crypto.subtle.digest("SHA-256", data);
+    return hex(digest);
+  }
+
+  function addLogoutButton() {
+    if (document.getElementById("ca-logout")) return;
+    var btn = document.createElement("button");
+    btn.id = "ca-logout";
+    btn.type = "button";
+    btn.textContent = "Sair";
+    btn.title = "Encerrar acesso nesta sessão";
+    btn.addEventListener("click", function () {
+      try { sessionStorage.removeItem(KEY); } catch (e) {}
+      window.location.href = "index.html";
+    });
+    document.body.appendChild(btn);
+  }
+
+  function unlock() {
+    try { sessionStorage.setItem(KEY, "ok"); } catch (e) {}
+    document.documentElement.classList.remove("ca-locked");
+    document.documentElement.classList.add("ca-authenticated");
+    var gate = document.getElementById("ca-access-gate");
+    if (gate) gate.remove();
+    addLogoutButton();
+  }
+
+  function showGate() {
+    if (document.getElementById("ca-access-gate")) return;
+
+    var gate = document.createElement("div");
+    gate.id = "ca-access-gate";
+    gate.setAttribute("role", "dialog");
+    gate.setAttribute("aria-modal", "true");
+    gate.setAttribute("aria-labelledby", "ca-access-title");
+
+    gate.innerHTML =
+      '<div id="ca-access-card">' +
+        '<div id="ca-access-brand">' +
+          '<div id="ca-access-logo" aria-hidden="true"><span></span><span></span><span></span><span></span></div>' +
+          '<div id="ca-access-brand-text">Casa Árvore · Territórios Conectados</div>' +
+        '</div>' +
+        '<h1 id="ca-access-title">Acesso restrito</h1>' +
+        '<p>Informe a senha para acessar a Central de Painéis e os dados do projeto.</p>' +
+        '<form id="ca-access-form" autocomplete="off">' +
+          '<label for="ca-access-password">Senha</label>' +
+          '<input id="ca-access-password" type="password" autocomplete="current-password" autofocus required>' +
+          '<button id="ca-access-submit" type="submit">Entrar</button>' +
+          '<div id="ca-access-error" role="alert" aria-live="polite"></div>' +
+        '</form>' +
+        '<p id="ca-access-note">O acesso permanece liberado enquanto esta sessão do navegador estiver aberta.</p>' +
+      '</div>';
+
+    document.body.appendChild(gate);
+
+    var form = gate.querySelector("#ca-access-form");
+    var input = gate.querySelector("#ca-access-password");
+    var error = gate.querySelector("#ca-access-error");
+    var button = gate.querySelector("#ca-access-submit");
+
+    setTimeout(function () { input.focus(); }, 0);
+
+    form.addEventListener("submit", async function (ev) {
+      ev.preventDefault();
+      error.textContent = "";
+      button.disabled = true;
+      button.textContent = "Verificando...";
+
+      try {
+        var enteredHash = await sha256(input.value);
+        if (enteredHash === EXPECTED_HASH) {
+          unlock();
+          return;
+        }
+        error.textContent = "Senha incorreta.";
+        input.value = "";
+        input.focus();
+      } catch (e) {
+        error.textContent = "Não foi possível validar a senha neste navegador.";
+      } finally {
+        button.disabled = false;
+        button.textContent = "Entrar";
+      }
+    });
+  }
+
+  function init() {
+    var authorized = false;
+    try { authorized = sessionStorage.getItem(KEY) === "ok"; } catch (e) {}
+
+    if (authorized) {
+      document.documentElement.classList.remove("ca-locked");
+      document.documentElement.classList.add("ca-authenticated");
+      addLogoutButton();
+    } else {
+      document.documentElement.classList.add("ca-locked");
+      showGate();
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once:true });
+  } else {
+    init();
+  }
+})();
+</script>
+<!-- /CASA ARVORE: CONTROLE DE SESSAO -->
+
+</body>
+</html>
