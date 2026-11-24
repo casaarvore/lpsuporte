@@ -21,6 +21,32 @@ app.use(express.static(path.join(__dirname, "public"))); // painel web
 
 const PORT = process.env.PORT || 3000;
 
+// ─── Extrai imagem/documento do payload do Z-API ──────────────────────────
+// Campos esperados (a confirmar nos logs do Render no primeiro teste):
+//   imagem:    body.image.imageUrl      (+ caption, mimeType)
+//   documento: body.document.documentUrl (+ fileName, caption, mimeType)
+function extrairMidia(body) {
+  if (body.image?.imageUrl) {
+    return {
+      tipo:    "imagem",
+      url:     body.image.imageUrl,
+      nome:    "",
+      legenda: body.image.caption || "",
+      mime:    body.image.mimeType || "",
+    };
+  }
+  if (body.document?.documentUrl) {
+    return {
+      tipo:    "documento",
+      url:     body.document.documentUrl,
+      nome:    body.document.fileName || body.document.title || "",
+      legenda: body.document.caption || "",
+      mime:    body.document.mimeType || "",
+    };
+  }
+  return null;
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // WEBHOOK — Recebe mensagens do WhatsApp via Z-API
 // ═══════════════════════════════════════════════════════════════════════
@@ -36,13 +62,23 @@ app.post("/webhook", async (req, res) => {
   try {
     const body = req.body;
 
-    // Ignora grupos e mensagens sem texto
-    if (body.isGroup || !body.text?.message) return;
+    // Ignora grupos
+    if (body.isGroup) return;
 
     const telefone = body.phone;
-    const texto    = body.text.message;
+    const texto    = body.text?.message || "";
+    const midia    = extrairMidia(body);   // imagem/documento (fluxo de certificado)
+
+    // Ignora mensagens sem texto e sem imagem/documento reconhecido
+    if (!texto && !midia) {
+      console.log(`[Webhook] Mensagem sem texto/mídia reconhecida. Campos: ${Object.keys(body).join(", ")}`);
+      return;
+    }
 
     if (body.fromMe) {
+      // Mensagens fromMe sem texto (ex.: arquivo enviado pelo ponto focal)
+      // continuam sendo ignoradas, como antes.
+      if (!texto) return;
       // Mensagem da conta do bot. Pode ser:
       // (1) Eco do envio automático pelo próprio bot (será ignorado abaixo)
       // (2) Comando administrativo do ponto focal (começa com "#")
@@ -58,9 +94,9 @@ app.post("/webhook", async (req, res) => {
       return;
     }
 
-    console.log(`[Webhook] Mensagem de ${telefone}: "${texto}"`);
+    console.log(`[Webhook] Mensagem de ${telefone}: "${texto}"${midia ? ` [+${midia.tipo}]` : ""}`);
 
-    const resposta = await processarMensagem(telefone, texto);
+    const resposta = await processarMensagem(telefone, texto, midia);
     if (resposta) {
       // Suporta retorno como string única ou array de strings (mensagens
       // sequenciais). O envio em sequência com pequeno intervalo evita o

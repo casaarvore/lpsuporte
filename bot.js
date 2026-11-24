@@ -1,8 +1,14 @@
 // ═══════════════════════════════════════════════════════════════════════
 // MÓDULO: Bot — Gerenciamento de sessões e fluxo de conversa
-// Versão: 3.2 — handoff humano com comandos e avaliação automatizada
+// Versão: 3.3 — fluxo de certificado (tradução / correção) na pergunta inicial
 //
-// Mudanças em relação à versão 3.1:
+// Mudanças em relação à versão 3.2:
+//   • Novo: pergunta inicial "é sobre certificado? Sim/Não" antes da dúvida
+//   • Novo: Sim → 1 tradução / 2 correção → pede cópia do certificado (foto
+//     ou PDF) → registra ticket "[CERTIFICADO - ...]" → informa prazo de 24 h
+//   • processarMensagem agora recebe também a mídia (imagem/documento)
+//
+// Mudanças em relação à versão 3.1 (já existentes na 3.2):
 //   • Novo: flags humano_atendendo e humano_desde por sessão
 //   • Novo: comandos #humano, #bot, #avaliar (processados via server.js)
 //   • Novo: estado AGUARDANDO_AVALIACAO_HUMANO
@@ -25,6 +31,9 @@ const ESTADOS = {
   AGUARDANDO_PERFIL:                       "aguardando_perfil",
   AGUARDANDO_MUNICIPIO_ESTADO:             "aguardando_municipio_estado",
   AGUARDANDO_ESCOLA:                       "aguardando_escola",
+  AGUARDANDO_CERTIFICADO_SN:               "aguardando_certificado_sn",
+  AGUARDANDO_CERTIFICADO_TIPO:             "aguardando_certificado_tipo",
+  AGUARDANDO_CERTIFICADO_COPIA:            "aguardando_certificado_copia",
   AGUARDANDO_DUVIDA:                       "aguardando_duvida",
   AGUARDANDO_AVALIACAO:                    "aguardando_avaliacao",
   AGUARDANDO_CONFIRMA_TICKET_INCOMPREENSAO:"aguardando_confirma_ticket_incompreensao",
@@ -71,6 +80,7 @@ async function criarSessao(telefone) {
     ultima_atividade: Date.now(),
     contagem_mensagens: 0,
     usuario_recorrente: false,
+    certificado_tipo: null,            // "Tradução" | "Correção" (fluxo de certificado)
     humano_atendendo: false,           // true quando o ponto focal assumiu a conversa
     humano_desde: null,                // timestamp da última atividade do humano
   };
@@ -176,11 +186,38 @@ async function abrirTicket(sessao) {
   return ticketId;
 }
 
+// ─── Normaliza resposta Sim/Não ("Sim", "s", "não", "Nao.", "N"...) ───────
+function normalizarSimNao(texto) {
+  const t = (texto || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")   // remove acentos
+    .replace(/[^a-z\s]/g, "")                            // remove pontuação
+    .trim();
+  if (t === "sim" || t === "s") return "sim";
+  if (t === "nao" || t === "n") return "nao";
+  return null;
+}
+
 // ─── Processar mensagem recebida ──────────────────────────────────────────
-async function processarMensagem(telefone, textoRecebido) {
+// `midia` (opcional): { tipo, url, nome, legenda } quando o usuário envia
+// imagem ou documento. Só é usada no fluxo de certificado.
+async function processarMensagem(telefone, textoRecebido, midia = null) {
   const sessao = await obterSessao(telefone);
-  const texto  = textoRecebido.trim();
+  const texto  = (textoRecebido || "").trim();
   sessao.contagem_mensagens++;
+
+  // ── Mídia fora do fluxo de certificado: ignorada (como antes) ─────────
+  // Exceção: sessão nova (AGUARDANDO_INICIO) — ex.: o bot reiniciou ou a
+  // sessão expirou enquanto o usuário procurava o arquivo. Nesse caso o
+  // atendimento recomeça normalmente pelas boas-vindas.
+  if (
+    midia &&
+    sessao.estado !== ESTADOS.AGUARDANDO_CERTIFICADO_COPIA &&
+    sessao.estado !== ESTADOS.AGUARDANDO_INICIO
+  ) {
+    console.log(`[Bot] Mídia de ${telefone} ignorada (estado: ${sessao.estado}).`);
+    return null;
+  }
 
   // ── Atendimento humano em curso: bot não responde ────────────────────
   if (sessao.humano_atendendo) {
@@ -200,9 +237,13 @@ async function processarMensagem(telefone, textoRecebido) {
   // ── ESTADO: início ────────────────────────────────────────────────────
   if (sessao.estado === ESTADOS.AGUARDANDO_INICIO) {
     if (sessao.usuario_recorrente) {
-      // Usuário já cadastrado: pula direto para dúvida aberta
-      sessao.estado = ESTADOS.AGUARDANDO_DUVIDA;
-      resposta = MENSAGENS.boas_vindas_retorno(sessao.primeiro_nome);
+      // Usuário já cadastrado: pula o cadastro e vai direto à pergunta
+      // inicial sobre certificado (2 mensagens sequenciais)
+      sessao.estado = ESTADOS.AGUARDANDO_CERTIFICADO_SN;
+      resposta = [
+        MENSAGENS.boas_vindas_retorno(sessao.primeiro_nome),
+        MENSAGENS.certificado_pergunta,
+      ];
     } else {
       sessao.estado = ESTADOS.AGUARDANDO_NOME;
       resposta = MENSAGENS.boas_vindas;
@@ -246,8 +287,63 @@ async function processarMensagem(telefone, textoRecebido) {
     sessao.escola = texto.toLowerCase() === "pular" ? "" : texto;
     // Cadastra o usuário na aba Usuarios (assíncrono, não bloqueia)
     cadastrarUsuarioSeNovo(sessao);
-    sessao.estado = ESTADOS.AGUARDANDO_DUVIDA;
-    resposta = MENSAGENS.digitar_duvida(sessao.primeiro_nome);
+    sessao.estado = ESTADOS.AGUARDANDO_CERTIFICADO_SN;
+    resposta = MENSAGENS.certificado_pergunta;
+  }
+
+  // ── ESTADO: pergunta inicial — é sobre certificado? (Sim/Não) ─────────
+  else if (sessao.estado === ESTADOS.AGUARDANDO_CERTIFICADO_SN) {
+    const sn = normalizarSimNao(texto);
+    if (sn === "sim") {
+      sessao.estado = ESTADOS.AGUARDANDO_CERTIFICADO_TIPO;
+      resposta = MENSAGENS.certificado_menu_tipo;
+    } else if (sn === "nao") {
+      // Atendimento normal (FAQ / IA / ticket)
+      sessao.estado = ESTADOS.AGUARDANDO_DUVIDA;
+      resposta = MENSAGENS.digitar_duvida(sessao.primeiro_nome);
+    } else {
+      resposta = MENSAGENS.certificado_sn_invalido;
+    }
+  }
+
+  // ── ESTADO: certificado — 1 tradução / 2 correção ─────────────────────
+  else if (sessao.estado === ESTADOS.AGUARDANDO_CERTIFICADO_TIPO) {
+    if (texto === "1" || texto === "2") {
+      sessao.certificado_tipo = texto === "1" ? "Tradução" : "Correção";
+      sessao.estado = ESTADOS.AGUARDANDO_CERTIFICADO_COPIA;
+      resposta = MENSAGENS.certificado_solicitar_copia(sessao.certificado_tipo);
+    } else {
+      resposta = MENSAGENS.certificado_tipo_invalido;
+    }
+  }
+
+  // ── ESTADO: certificado — aguardando a cópia (foto ou PDF) ────────────
+  // Ao receber o arquivo: registra um ticket marcado "[CERTIFICADO - ...]"
+  // (aba Tickets / painel) com o link do arquivo e avisa o prazo de 24 h.
+  else if (sessao.estado === ESTADOS.AGUARDANDO_CERTIFICADO_COPIA) {
+    if (midia) {
+      const tipo    = sessao.certificado_tipo || "Certificado";
+      const legenda = (midia.legenda || "").trim().slice(0, 150);
+      sessao.duvida_atual =
+        `[CERTIFICADO - ${tipo}] Arquivo (${midia.tipo}): ${midia.url}`
+        + (legenda ? ` | Obs.: ${legenda}` : "");
+
+      const ticketId = await abrirTicket(sessao);
+      sessao.certificado_tipo = null;
+      sessao.estado = ESTADOS.AGUARDANDO_POS_TICKET;
+      resposta = [
+        MENSAGENS.certificado_recebido(ticketId, tipo),
+        MENSAGENS.ticket_aberto_opcoes(),
+      ];
+
+    } else if (texto.toLowerCase() === "cancelar") {
+      sessao.certificado_tipo = null;
+      sessao.estado = ESTADOS.AGUARDANDO_DUVIDA;
+      resposta = MENSAGENS.digitar_duvida(sessao.primeiro_nome);
+
+    } else {
+      resposta = MENSAGENS.certificado_copia_pendente;
+    }
   }
 
   // ── ESTADO: aguardando dúvida ─────────────────────────────────────────
@@ -431,8 +527,11 @@ async function processarMensagem(telefone, textoRecebido) {
     const novaSessao = await criarSessao(telefone);
     // Se é recorrente, saúda como recorrente; se não, fluxo padrão
     if (novaSessao.usuario_recorrente) {
-      novaSessao.estado = ESTADOS.AGUARDANDO_DUVIDA;
-      resposta = MENSAGENS.boas_vindas_retorno(novaSessao.primeiro_nome);
+      novaSessao.estado = ESTADOS.AGUARDANDO_CERTIFICADO_SN;
+      resposta = [
+        MENSAGENS.boas_vindas_retorno(novaSessao.primeiro_nome),
+        MENSAGENS.certificado_pergunta,
+      ];
     } else {
       novaSessao.estado = ESTADOS.AGUARDANDO_NOME;
       resposta = MENSAGENS.boas_vindas;
