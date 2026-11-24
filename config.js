@@ -47,10 +47,52 @@ module.exports = {
       `Perfeito, *${primeiroNome}*! 💬\n\n`
       + `Em que posso te ajudar hoje? Descreva sua dúvida com o máximo de detalhes possível.`,
 
+    // ─── FLUXO DE CERTIFICADO (pergunta inicial) ───────────────────────────
+    // Exibida antes da "dúvida aberta". Sim → tradução/correção + cópia do
+    // certificado. Não → segue o atendimento normal (FAQ / IA / ticket).
+    certificado_pergunta:
+      `📜 Se a sua ocorrência é para tratar de *certificado*, digite *Sim*.\n`
+      + `Caso contrário, digite *Não*.`,
+
+    certificado_sn_invalido:
+      `Desculpe, não entendi. Por favor, responda *Sim* (assunto de certificado) `
+      + `ou *Não* (outro assunto).`,
+
+    certificado_menu_tipo:
+      `Certo! O que você precisa?\n\n`
+      + `1️⃣ 🌐 Solicitar *tradução* do certificado\n`
+      + `2️⃣ ✏️ *Corrigir* algum erro no certificado`,
+
+    certificado_tipo_invalido:
+      `Desculpe, não entendi. Por favor, responda com o *número* da opção desejada:\n\n`
+      + `1️⃣ 🌐 Solicitar *tradução* do certificado\n`
+      + `2️⃣ ✏️ *Corrigir* algum erro no certificado`,
+
+    certificado_solicitar_copia: (tipo) =>
+      `📎 Para ${tipo === "Tradução" ? "solicitar a *tradução*" : "*corrigir* o certificado"}, `
+      + `envie aqui uma *cópia do certificado*, de preferência em *PDF*.\n`
+      + `_(Se não tiver o PDF, pode enviar uma *foto nítida*, com o certificado inteiro, em JPG ou PNG.)_\n`
+      + (tipo === "Correção"
+          ? `\n_Se puder, escreva na legenda do arquivo qual é o erro a ser corrigido._\n`
+          : ``)
+      + `\n_Para voltar ao atendimento normal, digite *cancelar*._`,
+
+    certificado_copia_pendente:
+      `Ainda não recebi o arquivo. 📎 Envie o *PDF* do certificado (de preferência) `
+      + `ou uma *foto nítida*, ou digite *cancelar* para voltar ao atendimento normal.`,
+
+    certificado_recebido: (id, tipo) =>
+      `✅ *Recebemos a cópia do seu certificado!*\n\n`
+      + `🕒 Seu certificado será *${tipo === "Tradução" ? "traduzido" : "corrigido"}* `
+      + `em até *24 horas* em dias úteis.\n`
+      + `_(Em feriados ou finais de semana, pode ocorrer no próximo dia útil.)_\n\n`
+      + `📌 Guarde o protocolo *${id}* para acompanhar sua solicitação.`,
+
     // Saudação exibida quando o telefone já está cadastrado na aba Usuarios
+    // (a pergunta sobre certificado é enviada logo em seguida, como 2ª mensagem)
     boas_vindas_retorno: (primeiroNome) =>
-      `Olá, *${primeiroNome}*! 👋 Tem algo mais que eu possa te ajudar?\n\n`
-      + `_Pode descrever sua dúvida abaixo. Caso seus dados (escola, perfil ou e-mail) tenham mudado, `
+      `Olá, *${primeiroNome}*! 👋 Que bom ter você de volta.\n\n`
+      + `_Caso seus dados (escola, perfil ou e-mail) tenham mudado, `
       + `me avise ao final do atendimento para abrirmos um ticket de atualização._`,
 
     // Exibido após resposta automática (FAQ ou IA)
