@@ -61,12 +61,14 @@ module.exports = {
     certificado_menu_tipo:
       `Certo! O que você precisa?\n\n`
       + `1️⃣ 🌐 Solicitar *tradução* do certificado\n`
-      + `2️⃣ ✏️ *Corrigir* algum erro no certificado`,
+      + `2️⃣ ✏️ *Corrigir* algum erro no certificado\n`
+      + `3️⃣ ↩️ *Voltar* ao nível anterior`,
 
     certificado_tipo_invalido:
       `Desculpe, não entendi. Por favor, responda com o *número* da opção desejada:\n\n`
       + `1️⃣ 🌐 Solicitar *tradução* do certificado\n`
-      + `2️⃣ ✏️ *Corrigir* algum erro no certificado`,
+      + `2️⃣ ✏️ *Corrigir* algum erro no certificado\n`
+      + `3️⃣ ↩️ *Voltar* ao nível anterior`,
 
     certificado_solicitar_copia: (tipo) =>
       `📎 Para ${tipo === "Tradução" ? "solicitar a *tradução*" : "*corrigir* o certificado"}, `
