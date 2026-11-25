@@ -308,7 +308,11 @@ async function processarMensagem(telefone, textoRecebido, midia = null) {
 
   // ── ESTADO: certificado — 1 tradução / 2 correção ─────────────────────
   else if (sessao.estado === ESTADOS.AGUARDANDO_CERTIFICADO_TIPO) {
-    if (texto === "1" || texto === "2") {
+    if (texto === "3") {
+      // Voltar ao nível anterior: pergunta inicial (Sim/Não)
+      sessao.estado = ESTADOS.AGUARDANDO_CERTIFICADO_SN;
+      resposta = MENSAGENS.certificado_pergunta;
+    } else if (texto === "1" || texto === "2") {
       sessao.certificado_tipo = texto === "1" ? "Tradução" : "Correção";
       sessao.estado = ESTADOS.AGUARDANDO_CERTIFICADO_COPIA;
       resposta = MENSAGENS.certificado_solicitar_copia(sessao.certificado_tipo);
